@@ -1,0 +1,245 @@
+/*
+ClubCal Lite plugin styles
+*/
+
+.clubcal-lite-calendar {
+	max-width: 1100px;
+	margin: 0 auto;
+}
+
+@media (max-width: 640px) {
+	.clubcal-lite-calendar .fc .fc-scroller,
+	.clubcal-lite-calendar .fc .fc-scroller-harness {
+		height: auto !important;
+		max-height: none !important;
+		overflow: visible !important;
+	}
+
+	.clubcal-lite-calendar .fc .fc-view-harness {
+		height: auto !important;
+	}
+}
+
+.clubcal-lite-modal {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 9999;
+}
+
+.clubcal-lite-modal__backdrop {
+	position: fixed;
+	inset: 0;
+	width: 100vw;
+	height: 100vh;
+	background: rgba(0, 0, 0, 0.55);
+}
+
+.clubcal-lite-modal__dialog {
+	position: relative;
+	margin: 6vh auto;
+	width: min(720px, calc(100% - 32px));
+	max-height: 88vh;
+	overflow: auto;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+	padding: 20px;
+}
+
+.clubcal-lite-modal__close {
+	position: absolute;
+	top: 10px;
+	right: 12px;
+	border: 0;
+	background: transparent;
+	font-size: 28px;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.clubcal-lite-event__title {
+	margin: 0 32px 8px 0;
+}
+
+.clubcal-lite-event__datetime,
+.clubcal-lite-event__location {
+	margin: 0 0 8px 0;
+	opacity: 0.85;
+}
+
+.clubcal-lite-event__content > :first-child {
+	margin-top: 0;
+}
+
+.clubcal-lite-event__content > :last-child {
+	margin-bottom: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+	.clubcal-lite-calendar,
+	.clubcal-lite-modal {
+		--clubcal-bg: #0f1115;
+		--clubcal-surface: #151a22;
+		--clubcal-text: #e6eaf2;
+		--clubcal-muted: rgba(230, 234, 242, 0.75);
+		--clubcal-border: rgba(230, 234, 242, 0.12);
+		--clubcal-accent: #4da3ff;
+		--clubcal-backdrop: rgba(0, 0, 0, 0.7);
+	}
+}
+
+body.dark .clubcal-lite-calendar,
+body.dark-mode .clubcal-lite-calendar,
+body.is-dark .clubcal-lite-calendar,
+[data-theme="dark"] .clubcal-lite-calendar,
+body.dark .clubcal-lite-modal,
+body.dark-mode .clubcal-lite-modal,
+body.is-dark .clubcal-lite-modal,
+[data-theme="dark"] .clubcal-lite-modal {
+	--clubcal-bg: #0f1115;
+	--clubcal-surface: #151a22;
+	--clubcal-text: #e6eaf2;
+	--clubcal-muted: rgba(230, 234, 242, 0.75);
+	--clubcal-border: rgba(230, 234, 242, 0.12);
+	--clubcal-accent: #4da3ff;
+	--clubcal-backdrop: rgba(0, 0, 0, 0.7);
+}
+
+@media (prefers-color-scheme: dark) {
+	.clubcal-lite-calendar .fc,
+	.clubcal-lite-calendar .fc a {
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-calendar .fc .fc-scrollgrid,
+	.clubcal-lite-calendar .fc .fc-scrollgrid td,
+	.clubcal-lite-calendar .fc .fc-scrollgrid th,
+	.clubcal-lite-calendar .fc .fc-col-header-cell,
+	.clubcal-lite-calendar .fc .fc-daygrid-day {
+		border-color: var(--clubcal-border);
+	}
+
+	.clubcal-lite-calendar .fc .fc-toolbar-title {
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-calendar .fc .fc-button {
+		background: var(--clubcal-surface);
+		border-color: var(--clubcal-border);
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-calendar .fc .fc-button:hover {
+		background: rgba(230, 234, 242, 0.08);
+	}
+
+	.clubcal-lite-calendar .fc .fc-button-primary:not(:disabled).fc-button-active,
+	.clubcal-lite-calendar .fc .fc-button-primary:not(:disabled):active {
+		background: var(--clubcal-accent);
+		border-color: var(--clubcal-accent);
+		color: #0b0d10;
+	}
+
+	.clubcal-lite-calendar .fc .fc-daygrid-day-number,
+	.clubcal-lite-calendar .fc .fc-col-header-cell-cushion {
+		color: var(--clubcal-muted);
+	}
+
+	.clubcal-lite-calendar .fc .fc-list,
+	.clubcal-lite-calendar .fc .fc-list-day-cushion,
+	.clubcal-lite-calendar .fc .fc-list-event:hover td {
+		background: var(--clubcal-bg);
+	}
+
+	.clubcal-lite-calendar .fc .fc-list-event td,
+	.clubcal-lite-calendar .fc .fc-list-day-text,
+	.clubcal-lite-calendar .fc .fc-list-day-side-text {
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-calendar .fc-theme-standard .fc-list {
+		border-color: var(--clubcal-border);
+	}
+
+	.clubcal-lite-calendar .fc-theme-standard .fc-list-day-cushion {
+		background: var(--clubcal-surface);
+	}
+
+	.clubcal-lite-modal__backdrop {
+		background: var(--clubcal-backdrop);
+	}
+
+	.clubcal-lite-modal__dialog {
+		background: var(--clubcal-surface);
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-modal__close {
+		color: var(--clubcal-text);
+	}
+
+	.clubcal-lite-event__datetime,
+	.clubcal-lite-event__location {
+		opacity: 0.9;
+		color: var(--clubcal-muted);
+	}
+
+	.clubcal-lite-event__link a {
+		color: var(--clubcal-accent);
+	}
+}
+
+.clubcal-lite-calendar .fc .fc-daygrid-day-frame,
+.clubcal-lite-calendar .fc .fc-daygrid-day-events,
+.clubcal-lite-calendar .fc .fc-daygrid-event-harness {
+	overflow: visible;
+}
+
+.clubcal-lite-calendar .fc .fc-scroller,
+.clubcal-lite-calendar .fc .fc-scroller-harness,
+.clubcal-lite-calendar .fc .fc-daygrid-body,
+.clubcal-lite-calendar .fc .fc-daygrid-body-natural {
+	overflow: visible !important;
+}
+
+.clubcal-lite-calendar .fc .fc-daygrid-event-harness {
+	position: relative;
+}
+
+
+.fc-h-event .fc-event-title,
+.clubcal-lite-hovercard .fc-event-title {
+	white-space: normal;
+	padding: 0.5em;
+}
+
+
+.clubcal-lite-hovercard {
+	pointer-events: none;
+	opacity: 0;
+	transform: translateY(2px) scale(1.02);
+	transform-origin: center;
+	box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
+	border-radius: 8px;
+	overflow: hidden;
+	transition: transform 180ms cubic-bezier(0.2, 0.9, 0.2, 1), opacity 180ms ease;
+}
+
+.clubcal-lite-hovercard.is-visible {
+	opacity: 1;
+	transform: translateY(0) scale(1.12);
+}
+
+.clubcal-lite-hovercard.is-leaving {
+	opacity: 0;
+	transform: translateY(2px) scale(1.06);
+}
+
+
+@media (prefers-reduced-motion: reduce) {
+	.clubcal-lite-hovercard {
+		transition: none;
+	}
+}
