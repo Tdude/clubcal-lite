@@ -1,0 +1,108 @@
+# Swedish translation for ClubCal Lite
+# Copyright (C) 2025 ClubCal Lite
+# This file is distributed under the same license as the ClubCal Lite plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: ClubCal Lite 0.1.2\n"
+"Report-Msgid-Bugs-To: https://github.com/Tdude\n"
+"POT-Creation-Date: 2025-01-14 12:00+0000\n"
+"PO-Revision-Date: 2025-01-14 12:00+0000\n"
+"Last-Translator: \n"
+"Language-Team: Swedish\n"
+"Language: sv_SE\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: clubcal-lite.php:47
+msgid "Events"
+msgstr "Evenemang"
+
+#: clubcal-lite.php:48
+msgid "Event"
+msgstr "Evenemang"
+
+#: clubcal-lite.php:51
+msgid "Add New"
+msgstr "Lägg till"
+
+#: clubcal-lite.php:52
+msgid "Add New Event"
+msgstr "Lägg till evenemang"
+
+#: clubcal-lite.php:53
+msgid "New Event"
+msgstr "Nytt evenemang"
+
+#: clubcal-lite.php:54
+msgid "Edit Event"
+msgstr "Redigera evenemang"
+
+#: clubcal-lite.php:55
+msgid "View Event"
+msgstr "Visa evenemang"
+
+#: clubcal-lite.php:56
+msgid "All Events"
+msgstr "Alla evenemang"
+
+#: clubcal-lite.php:57
+msgid "Search Events"
+msgstr "Sök evenemang"
+
+#: clubcal-lite.php:58
+msgid "No events found."
+msgstr "Inga evenemang hittades."
+
+#: clubcal-lite.php:59
+msgid "No events found in Trash."
+msgstr "Inga evenemang hittades i papperskorgen."
+
+#: clubcal-lite.php:75
+msgid "Event Categories"
+msgstr "Evenemangskategorier"
+
+#: clubcal-lite.php:76
+msgid "Event Category"
+msgstr "Evenemangskategori"
+
+#: clubcal-lite.php:92
+msgid "Event Tags"
+msgstr "Evenemangstaggar"
+
+#: clubcal-lite.php:93
+msgid "Event Tag"
+msgstr "Evenemangstagg"
+
+#: clubcal-lite.php:112
+msgid "Event Details"
+msgstr "Evenemangsdetaljer"
+
+#: clubcal-lite.php:128
+msgid "Color"
+msgstr "Färg"
+
+#: clubcal-lite.php:130
+msgid "Choose a color for events in this category."
+msgstr "Välj en färg för evenemang i denna kategori."
+
+#: clubcal-lite.php:177
+msgid "Start date/time"
+msgstr "Startdatum/tid"
+
+#: clubcal-lite.php:182
+msgid "End date/time"
+msgstr "Slutdatum/tid"
+
+#: clubcal-lite.php:188
+msgid "All day"
+msgstr "Heldag"
+
+#: clubcal-lite.php:193
+msgid "Location"
+msgstr "Plats"
+
+#: clubcal-lite.php:569
+msgid "Open event page"
+msgstr "Öppna evenemangssida"

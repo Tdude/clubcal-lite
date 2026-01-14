@@ -1,0 +1,106 @@
+# Copyright (C) 2025 ClubCal Lite
+# This file is distributed under the same license as the ClubCal Lite plugin.
+msgid ""
+msgstr ""
+"Project-Id-Version: ClubCal Lite 0.1.2\n"
+"Report-Msgid-Bugs-To: https://github.com/Tdude\n"
+"POT-Creation-Date: 2025-01-14 12:00+0000\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: clubcal-lite.php:47
+msgid "Events"
+msgstr ""
+
+#: clubcal-lite.php:48
+msgid "Event"
+msgstr ""
+
+#: clubcal-lite.php:51
+msgid "Add New"
+msgstr ""
+
+#: clubcal-lite.php:52
+msgid "Add New Event"
+msgstr ""
+
+#: clubcal-lite.php:53
+msgid "New Event"
+msgstr ""
+
+#: clubcal-lite.php:54
+msgid "Edit Event"
+msgstr ""
+
+#: clubcal-lite.php:55
+msgid "View Event"
+msgstr ""
+
+#: clubcal-lite.php:56
+msgid "All Events"
+msgstr ""
+
+#: clubcal-lite.php:57
+msgid "Search Events"
+msgstr ""
+
+#: clubcal-lite.php:58
+msgid "No events found."
+msgstr ""
+
+#: clubcal-lite.php:59
+msgid "No events found in Trash."
+msgstr ""
+
+#: clubcal-lite.php:75
+msgid "Event Categories"
+msgstr ""
+
+#: clubcal-lite.php:76
+msgid "Event Category"
+msgstr ""
+
+#: clubcal-lite.php:92
+msgid "Event Tags"
+msgstr ""
+
+#: clubcal-lite.php:93
+msgid "Event Tag"
+msgstr ""
+
+#: clubcal-lite.php:112
+msgid "Event Details"
+msgstr ""
+
+#: clubcal-lite.php:128
+msgid "Color"
+msgstr ""
+
+#: clubcal-lite.php:130
+msgid "Choose a color for events in this category."
+msgstr ""
+
+#: clubcal-lite.php:177
+msgid "Start date/time"
+msgstr ""
+
+#: clubcal-lite.php:182
+msgid "End date/time"
+msgstr ""
+
+#: clubcal-lite.php:188
+msgid "All day"
+msgstr ""
+
+#: clubcal-lite.php:193
+msgid "Location"
+msgstr ""
+
+#: clubcal-lite.php:569
+msgid "Open event page"
+msgstr ""
