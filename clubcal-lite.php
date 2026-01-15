@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 0.1.0
+ * Version: 0.1.3
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class ClubCal_Lite {
-	public const VERSION = '0.1.0';
+	public const VERSION = '0.1.3';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
@@ -22,6 +22,7 @@ final class ClubCal_Lite {
 	private bool $modal_markup_rendered = false;
 
 	public function init(): void {
+		add_action('plugins_loaded', [$this, 'load_textdomain']);
 		add_action('init', [$this, 'register_cpt_and_taxonomies']);
 		add_action('add_meta_boxes', [$this, 'register_meta_boxes']);
 		add_action('save_post_' . self::POST_TYPE, [$this, 'save_meta_boxes']);
@@ -31,6 +32,10 @@ final class ClubCal_Lite {
 		add_action('wp_ajax_nopriv_' . self::AJAX_ACTION_EVENTS, [$this, 'ajax_events']);
 		add_action('wp_ajax_' . self::AJAX_ACTION_EVENT_DETAILS, [$this, 'ajax_event_details']);
 		add_action('wp_ajax_nopriv_' . self::AJAX_ACTION_EVENT_DETAILS, [$this, 'ajax_event_details']);
+	}
+
+	public function load_textdomain(): void {
+		load_plugin_textdomain('clubcal-lite', false, dirname(plugin_basename(__FILE__)) . '/languages');
 	}
 
 	public function activate(): void {
@@ -115,6 +120,52 @@ final class ClubCal_Lite {
 			'normal',
 			'high'
 		);
+		
+		add_action(self::TAX_CATEGORY . '_add_form_fields', [$this, 'render_category_color_field_add']);
+		add_action(self::TAX_CATEGORY . '_edit_form_fields', [$this, 'render_category_color_field_edit']);
+		add_action('created_' . self::TAX_CATEGORY, [$this, 'save_category_color']);
+		add_action('edited_' . self::TAX_CATEGORY, [$this, 'save_category_color']);
+	}
+
+	public function render_category_color_field_add(): void {
+		?>
+		<div class="form-field">
+			<label for="clubcal_category_color"><?php esc_html_e('Color', 'clubcal-lite'); ?></label>
+			<input type="color" id="clubcal_category_color" name="clubcal_category_color" value="#3788d8" />
+			<p class="description"><?php esc_html_e('Choose a color for events in this category.', 'clubcal-lite'); ?></p>
+		</div>
+		<?php
+	}
+
+	public function render_category_color_field_edit(\WP_Term $term): void {
+		$color = get_term_meta($term->term_id, 'clubcal_category_color', true);
+		if (empty($color)) {
+			$color = '#3788d8';
+		}
+		?>
+		<tr class="form-field">
+			<th scope="row">
+				<label for="clubcal_category_color"><?php esc_html_e('Color', 'clubcal-lite'); ?></label>
+			</th>
+			<td>
+				<input type="color" id="clubcal_category_color" name="clubcal_category_color" value="<?php echo esc_attr($color); ?>" />
+				<p class="description"><?php esc_html_e('Choose a color for events in this category.', 'clubcal-lite'); ?></p>
+			</td>
+		</tr>
+		<?php
+	}
+
+	public function save_category_color(int $term_id): void {
+		if (!isset($_POST['clubcal_category_color'])) {
+			return;
+		}
+
+		$color = sanitize_hex_color($_POST['clubcal_category_color']);
+		if ($color) {
+			update_term_meta($term_id, 'clubcal_category_color', $color);
+		} else {
+			delete_term_meta($term_id, 'clubcal_category_color');
+		}
 	}
 
 	public function render_event_details_meta_box(\WP_Post $post): void {
@@ -519,11 +570,18 @@ final class ClubCal_Lite {
 				continue;
 			}
 
-			if ($start_meta_ts < $start_ts || $start_meta_ts > $end_ts) {
+			$end_meta = (string) get_post_meta($post->ID, '_clubcal_end', true);
+			$end_meta_ts = strtotime($end_meta);
+			
+			// Use end time if available, otherwise use start time
+			$event_end_ts = ($end_meta_ts !== false) ? $end_meta_ts : $start_meta_ts;
+			
+			// Show event if it overlaps with the visible range
+			// Event overlaps if: event_start <= range_end AND event_end >= range_start
+			if ($start_meta_ts > $end_ts || $event_end_ts < $start_ts) {
 				continue;
 			}
 
-			$end_meta = (string) get_post_meta($post->ID, '_clubcal_end', true);
 			$all_day = (string) get_post_meta($post->ID, '_clubcal_all_day', true);
 			$location = (string) get_post_meta($post->ID, '_clubcal_location', true);
 
@@ -542,6 +600,17 @@ final class ClubCal_Lite {
 
 			if ($location !== '') {
 				$event['extendedProps'] = ['location' => $location];
+			}
+
+			// Get the primary category and its color
+			$categories = wp_get_post_terms($post->ID, self::TAX_CATEGORY);
+			if (!empty($categories) && !is_wp_error($categories)) {
+				$primary_category = $categories[0];
+				$color = get_term_meta($primary_category->term_id, 'clubcal_category_color', true);
+				if (!empty($color)) {
+					$event['backgroundColor'] = $color;
+					$event['borderColor'] = $color;
+				}
 			}
 
 			$events[] = $event;
