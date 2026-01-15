@@ -160,6 +160,11 @@ final class ClubCal_Lite {
 			return;
 		}
 
+		// Check user capabilities
+		if (!current_user_can('manage_categories')) {
+			return;
+		}
+
 		$color = sanitize_hex_color($_POST['clubcal_category_color']);
 		if ($color) {
 			update_term_meta($term_id, 'clubcal_category_color', $color);
@@ -190,7 +195,7 @@ final class ClubCal_Lite {
 
 		echo '<p>';
 		echo '<label for="clubcal_lite_all_day">';
-		echo '<input type="checkbox" id="clubcal_lite_all_day" name="clubcal_lite_all_day" value="1" ' . $all_day_checked . ' /> ';
+		echo '<input type="checkbox" id="clubcal_lite_all_day" name="clubcal_lite_all_day" value="1" ' . esc_attr($all_day_checked) . ' /> ';
 		echo esc_html__('All day', 'clubcal-lite');
 		echo '</label>';
 		echo '</p>';
@@ -674,7 +679,7 @@ final class ClubCal_Lite {
 			$html .= '<p class="clubcal-lite-event__location">' . esc_html($location) . '</p>';
 		}
 
-		$html .= '<div class="clubcal-lite-event__content">' . $content_html . '</div>';
+		$html .= '<div class="clubcal-lite-event__content">' . wp_kses_post($content_html) . '</div>';
 		$html .= '<p class="clubcal-lite-event__link"><a href="' . esc_url($permalink) . '">' . esc_html__('Open event page', 'clubcal-lite') . '</a></p>';
 		$html .= '</div>';
 
