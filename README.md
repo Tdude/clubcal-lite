@@ -186,6 +186,6 @@ For questions or issues:
 
 ---
 
-**Current Version:** 0.1.2  
+**Current Version:** 0.1.3  
 **Text Domain:** clubcal-lite  
 **Supported Languages:** Swedish (sv_SE)
