@@ -33,6 +33,38 @@ Example:
 - `You can add as many calendars as you wish in your posts.`
 
 
+
+
+  ## Calendar Shortcode Updated
+  The [club_calendar] shortcode now supports a list_months attribute:
+
+  Usage:
+  [club_calendar]                              <!-- Default: 3 months list view -->
+  [club_calendar list_months="6"]              <!-- 6 months list view -->
+  [club_calendar view="listRange"]             <!-- Start in list view, 3 months -->
+  [club_calendar view="listRange" list_months="1"]  <!-- 1 month list view -->
+  [club_calendar view="dayGridMonth" list_months="12"]  <!-- Calendar view, but list button shows 12 months -->
+
+  Attributes:
+  - list_months - Number of months to show in list view (1-12, default: 3)
+  - view - Initial view: dayGridMonth (default) or listRange (formerly listWeek)
+  - category - Filter by category slug
+  - initial_date - Start date (YYYY-MM-DD)
+
+  How It Works
+
+  1. The toolbar now shows "Månad" (Month) and "3 månader" (3 months) buttons by default
+  2. The list button text dynamically updates based on list_months value:
+    - list_months="1" → "1 månad"
+    - list_months="3" → "3 månader"
+    - list_months="6" → "6 månader"
+  3. When clicking the list button, it shows events for the specified duration starting from the current date
+  4. Backwards compatible: view="listWeek" automatically maps to view="listRange"
+
+
+
+
+
 ## Quick Start for Swedish, translate to any language and contribute
 
 1. Upload all files to your WordPress installation:

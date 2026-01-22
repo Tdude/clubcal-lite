@@ -15,13 +15,17 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: clubcal-lite.php:47
+#: clubcal-lite.php:52
 msgid "Events"
 msgstr "Evenemang"
 
-#: clubcal-lite.php:48
+#: clubcal-lite.php:53
 msgid "Event"
 msgstr "Evenemang"
+
+#: clubcal-lite.php:54
+msgid "Calendar"
+msgstr "Kalender"
 
 #: clubcal-lite.php:51
 msgid "Add New"
@@ -103,6 +107,20 @@ msgstr "Heldag"
 msgid "Location"
 msgstr "Plats"
 
-#: clubcal-lite.php:569
+#: clubcal-lite.php
 msgid "Open event page"
 msgstr "Öppna evenemangssida"
+
+#: clubcal-lite.php
+msgid "No upcoming events."
+msgstr "Inga kommande evenemang."
+
+#. translators: Date format, see https://www.php.net/manual/en/datetime.format.php
+#: clubcal-lite.php
+msgid "F j, Y"
+msgstr "j F Y"
+
+#. translators: Date and time format
+#: clubcal-lite.php
+msgid "F j, Y \\a\\t H:i"
+msgstr "j F Y \\k\\l H:i"

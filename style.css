@@ -66,7 +66,7 @@ ClubCal Lite plugin styles
 .clubcal-lite-event__datetime,
 .clubcal-lite-event__location {
 	margin: 0 0 8px 0;
-	opacity: 0.85;
+	opacity: 0.95;
 }
 
 .clubcal-lite-event__content > :first-child {
@@ -148,9 +148,12 @@ body.is-dark .clubcal-lite-modal,
 	}
 
 	.clubcal-lite-calendar .fc .fc-list,
-	.clubcal-lite-calendar .fc .fc-list-day-cushion,
-	.clubcal-lite-calendar .fc .fc-list-event:hover td {
+	.clubcal-lite-calendar .fc .fc-list-day-cushion {
 		background: var(--clubcal-bg);
+	}
+
+	.clubcal-lite-calendar .fc .fc-list-event:hover td {
+		background-color: #1e242e !important;
 	}
 
 	.clubcal-lite-calendar .fc .fc-list-event td,
@@ -208,6 +211,10 @@ body.is-dark .clubcal-lite-modal,
 	position: relative;
 }
 
+/* FullCalendar list view hover - fully opaque background */
+.clubcal-lite-calendar .fc .fc-list-event:hover td {
+	background-color: #f5f5f5 !important;
+}
 
 .fc-h-event .fc-event-title,
 .clubcal-lite-hovercard .fc-event-title {
@@ -240,6 +247,291 @@ body.is-dark .clubcal-lite-modal,
 
 @media (prefers-reduced-motion: reduce) {
 	.clubcal-lite-hovercard {
+		transition: none;
+	}
+}
+
+/* ===========================
+   Events List View Styles
+   =========================== */
+
+.clubcal-lite-list {
+	max-width: 800px;
+	margin: 0 auto;
+}
+
+.clubcal-lite-list__empty {
+	text-align: center;
+	padding: 2rem;
+	color: #666;
+	font-style: italic;
+}
+
+.clubcal-lite-list__item {
+	margin-bottom: 1rem;
+	border-radius: 8px;
+	background: #fff;
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+	overflow: hidden;
+	transition: box-shadow 200ms ease;
+}
+
+.clubcal-lite-list__item:hover {
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+}
+
+.clubcal-lite-list__header {
+	display: flex;
+	align-items: flex-start;
+	justify-content: space-between;
+	padding: 1rem 1.25rem;
+	cursor: pointer;
+	border-left: 4px solid #3788d8;
+	transition: background-color 150ms ease;
+}
+
+.clubcal-lite-list__header:hover {
+	background-color: #f5f5f5;
+}
+
+.clubcal-lite-list__info {
+	flex: 1;
+	min-width: 0;
+}
+
+.clubcal-lite-list__title {
+	margin: 0 0 0.5rem 0;
+	font-size: 1.125rem;
+	font-weight: 600;
+	line-height: 1.3;
+}
+
+.clubcal-lite-list__meta {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem 1rem;
+	margin-bottom: 0.5rem;
+	font-size: 0.875rem;
+	color: #666;
+}
+
+.clubcal-lite-list__date::before {
+	content: "📅 ";
+}
+
+.clubcal-lite-list__location::before {
+	content: "📍 ";
+}
+
+.clubcal-lite-list__excerpt {
+	color: #555;
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+
+.clubcal-lite-list__chevron {
+	flex-shrink: 0;
+	width: 24px;
+	height: 24px;
+	margin-left: 1rem;
+	margin-top: 0.25rem;
+	color: #999;
+	transition: transform 300ms ease, color 150ms ease;
+}
+
+.clubcal-lite-list__item:hover .clubcal-lite-list__chevron {
+	color: #666;
+}
+
+.clubcal-lite-list__item.is-expanded .clubcal-lite-list__chevron {
+	transform: rotate(180deg);
+	color: #3788d8;
+}
+
+.clubcal-lite-list__content {
+	max-height: 0;
+	overflow: hidden;
+	transition: max-height 350ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.clubcal-lite-list__item.is-expanded .clubcal-lite-list__content {
+	max-height: 2000px;
+}
+
+.clubcal-lite-list__content-inner {
+	padding: 0 1.25rem 1rem 1.25rem;
+	border-top: 1px solid rgba(0, 0, 0, 0.06);
+	margin-top: 0;
+	padding-top: 1rem;
+}
+
+.clubcal-lite-list__content-inner > :first-child {
+	margin-top: 0;
+}
+
+.clubcal-lite-list__content-inner > :last-child {
+	margin-bottom: 0;
+}
+
+.clubcal-lite-list__link {
+	padding: 0 1.25rem 1rem;
+	margin: 0;
+}
+
+.clubcal-lite-list__link a {
+	color: #3788d8;
+	text-decoration: none;
+	font-weight: 500;
+}
+
+.clubcal-lite-list__link a:hover {
+	text-decoration: underline;
+}
+
+/* Dark mode support for list */
+@media (prefers-color-scheme: dark) {
+	.clubcal-lite-list {
+		--clubcal-list-bg: #151a22;
+		--clubcal-list-text: #e6eaf2;
+		--clubcal-list-muted: rgba(230, 234, 242, 0.65);
+		--clubcal-list-border: rgba(230, 234, 242, 0.1);
+	}
+}
+
+body.dark .clubcal-lite-list,
+body.dark-mode .clubcal-lite-list,
+body.is-dark .clubcal-lite-list,
+[data-theme="dark"] .clubcal-lite-list {
+	--clubcal-list-bg: #151a22;
+	--clubcal-list-text: #e6eaf2;
+	--clubcal-list-muted: rgba(230, 234, 242, 0.65);
+	--clubcal-list-border: rgba(230, 234, 242, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+	.clubcal-lite-list__item {
+		background: var(--clubcal-list-bg);
+		box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+	}
+
+	.clubcal-lite-list__item:hover {
+		box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+	}
+
+	.clubcal-lite-list__header:hover {
+		background-color: #1e242e;
+	}
+
+	.clubcal-lite-list__title {
+		color: var(--clubcal-list-text);
+	}
+
+	.clubcal-lite-list__meta {
+		color: var(--clubcal-list-muted);
+	}
+
+	.clubcal-lite-list__excerpt {
+		color: var(--clubcal-list-muted);
+	}
+
+	.clubcal-lite-list__chevron {
+		color: var(--clubcal-list-muted);
+	}
+
+	.clubcal-lite-list__item:hover .clubcal-lite-list__chevron {
+		color: var(--clubcal-list-text);
+	}
+
+	.clubcal-lite-list__item.is-expanded .clubcal-lite-list__chevron {
+		color: #4da3ff;
+	}
+
+	.clubcal-lite-list__content-inner {
+		border-top-color: var(--clubcal-list-border);
+		color: var(--clubcal-list-text);
+	}
+
+	.clubcal-lite-list__link a {
+		color: #4da3ff;
+	}
+
+	.clubcal-lite-list__empty {
+		color: var(--clubcal-list-muted);
+	}
+}
+
+/* Class-based dark mode for list */
+body.dark .clubcal-lite-list__item,
+body.dark-mode .clubcal-lite-list__item,
+body.is-dark .clubcal-lite-list__item,
+[data-theme="dark"] .clubcal-lite-list__item {
+	background: var(--clubcal-list-bg);
+	box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.dark .clubcal-lite-list__title,
+body.dark-mode .clubcal-lite-list__title,
+body.is-dark .clubcal-lite-list__title,
+[data-theme="dark"] .clubcal-lite-list__title {
+	color: var(--clubcal-list-text);
+}
+
+body.dark .clubcal-lite-list__meta,
+body.dark-mode .clubcal-lite-list__meta,
+body.is-dark .clubcal-lite-list__meta,
+[data-theme="dark"] .clubcal-lite-list__meta,
+body.dark .clubcal-lite-list__excerpt,
+body.dark-mode .clubcal-lite-list__excerpt,
+body.is-dark .clubcal-lite-list__excerpt,
+[data-theme="dark"] .clubcal-lite-list__excerpt {
+	color: var(--clubcal-list-muted);
+}
+
+body.dark .clubcal-lite-list__content-inner,
+body.dark-mode .clubcal-lite-list__content-inner,
+body.is-dark .clubcal-lite-list__content-inner,
+[data-theme="dark"] .clubcal-lite-list__content-inner {
+	border-top-color: var(--clubcal-list-border);
+	color: var(--clubcal-list-text);
+}
+
+body.dark .clubcal-lite-list__link a,
+body.dark-mode .clubcal-lite-list__link a,
+body.is-dark .clubcal-lite-list__link a,
+[data-theme="dark"] .clubcal-lite-list__link a {
+	color: #4da3ff;
+}
+
+/* Mobile responsive */
+@media (max-width: 640px) {
+	.clubcal-lite-list__header {
+		padding: 0.875rem 1rem;
+	}
+
+	.clubcal-lite-list__title {
+		font-size: 1rem;
+	}
+
+	.clubcal-lite-list__meta {
+		font-size: 0.8125rem;
+	}
+
+	.clubcal-lite-list__excerpt {
+		font-size: 0.875rem;
+	}
+
+	.clubcal-lite-list__content-inner,
+	.clubcal-lite-list__link {
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+	.clubcal-lite-list__chevron,
+	.clubcal-lite-list__content,
+	.clubcal-lite-list__item {
 		transition: none;
 	}
 }

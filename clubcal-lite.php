@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 0.1.3
+ * Version: 0.2.0
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class ClubCal_Lite {
-	public const VERSION = '0.1.3';
+	public const VERSION = '0.2.0';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
@@ -51,7 +51,7 @@ final class ClubCal_Lite {
 		$labels = [
 			'name' => __('Events', 'clubcal-lite'),
 			'singular_name' => __('Event', 'clubcal-lite'),
-			'menu_name' => __('Events', 'clubcal-lite'),
+			'menu_name' => __('Calendar', 'clubcal-lite'),
 			'name_admin_bar' => __('Event', 'clubcal-lite'),
 			'add_new' => __('Add New', 'clubcal-lite'),
 			'add_new_item' => __('Add New Event', 'clubcal-lite'),
@@ -296,6 +296,7 @@ final class ClubCal_Lite {
 
 	public function register_shortcodes(): void {
 		add_shortcode('club_calendar', [$this, 'shortcode_club_calendar']);
+		add_shortcode('club_events_list', [$this, 'shortcode_club_events_list']);
 	}
 
 	public function shortcode_club_calendar(array $atts = []): string {
@@ -306,19 +307,24 @@ final class ClubCal_Lite {
 				'category' => '',
 				'view' => 'dayGridMonth',
 				'initial_date' => '',
+				'list_months' => '3',
 			],
 			$atts,
 			'club_calendar'
 		);
 
+		// Sanitize list_months to be between 1 and 12
+		$list_months = max(1, min(12, intval($atts['list_months'])));
+
 		$id = 'clubcal-lite-calendar-' . wp_generate_uuid4();
 
 		$calendar = sprintf(
-			'<div id="%s" class="clubcal-lite-calendar" data-category="%s" data-view="%s" data-initial-date="%s"></div>',
+			'<div id="%s" class="clubcal-lite-calendar" data-category="%s" data-view="%s" data-initial-date="%s" data-list-months="%d"></div>',
 			esc_attr($id),
 			esc_attr((string) $atts['category']),
 			esc_attr((string) $atts['view']),
-			esc_attr((string) $atts['initial_date'])
+			esc_attr((string) $atts['initial_date']),
+			$list_months
 		);
 
 		if ($this->modal_markup_rendered) {
@@ -337,6 +343,214 @@ final class ClubCal_Lite {
 		$modal .= '</div>';
 
 		return $calendar . $modal;
+	}
+
+	/**
+	 * Shortcode: [club_events_list]
+	 * Displays events in a news-style list view with expandable content.
+	 *
+	 * @param array $atts Shortcode attributes.
+	 * @return string HTML output.
+	 */
+	public function shortcode_club_events_list(array $atts = []): string {
+		$atts = shortcode_atts(
+			[
+				'category'     => '',
+				'limit'        => 10,
+				'order'        => 'ASC',
+				'show_past'    => 'no',
+			],
+			$atts,
+			'club_events_list'
+		);
+
+		$this->maybe_enqueue_list_assets();
+
+		$args = [
+			'post_type'      => self::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => intval($atts['limit']),
+			'orderby'        => 'meta_value',
+			'meta_key'       => '_clubcal_start',
+			'order'          => strtoupper($atts['order']) === 'DESC' ? 'DESC' : 'ASC',
+			'meta_query'     => [
+				[
+					'key'     => '_clubcal_start',
+					'compare' => 'EXISTS',
+				],
+			],
+		];
+
+		// Filter by category if specified
+		if ($atts['category'] !== '') {
+			$args['tax_query'] = [
+				[
+					'taxonomy' => self::TAX_CATEGORY,
+					'field'    => 'slug',
+					'terms'    => array_map('trim', explode(',', $atts['category'])),
+				],
+			];
+		}
+
+		// Only show future events by default
+		if ($atts['show_past'] !== 'yes') {
+			$args['meta_query'][] = [
+				'key'     => '_clubcal_start',
+				'value'   => current_time('Y-m-d H:i:s'),
+				'compare' => '>=',
+				'type'    => 'DATETIME',
+			];
+		}
+
+		$query = new \WP_Query($args);
+
+		if (!$query->have_posts()) {
+			return '<p class="clubcal-lite-list__empty">' . esc_html__('No upcoming events.', 'clubcal-lite') . '</p>';
+		}
+
+		$html = '<div class="clubcal-lite-list">';
+
+		while ($query->have_posts()) {
+			$query->the_post();
+			$post_id = get_the_ID();
+
+			$start_meta = (string) get_post_meta($post_id, '_clubcal_start', true);
+			$all_day    = (string) get_post_meta($post_id, '_clubcal_all_day', true);
+			$location   = (string) get_post_meta($post_id, '_clubcal_location', true);
+
+			$start_ts = strtotime($start_meta);
+			$date_text = '';
+			if ($start_ts !== false) {
+				if ($all_day === '1') {
+					$date_text = wp_date(__('F j, Y', 'clubcal-lite'), $start_ts);
+				} else {
+					$date_text = wp_date(__('F j, Y \a\t H:i', 'clubcal-lite'), $start_ts);
+				}
+			}
+
+			// Get excerpt or truncate content
+			$excerpt = get_the_excerpt();
+			if (empty($excerpt)) {
+				$content = get_the_content();
+				$excerpt = $this->safe_truncate_html($content, 100);
+			}
+
+			// Get full content for expansion
+			$full_content = apply_filters('the_content', get_the_content());
+
+			// Get category color for accent
+			$accent_color = '#3788d8';
+			$categories = wp_get_post_terms($post_id, self::TAX_CATEGORY);
+			if (!empty($categories) && !is_wp_error($categories)) {
+				$cat_color = get_term_meta($categories[0]->term_id, 'clubcal_category_color', true);
+				if (!empty($cat_color)) {
+					$accent_color = $cat_color;
+				}
+			}
+
+			$html .= '<article class="clubcal-lite-list__item" data-clubcal-list-item>';
+			$html .= '<div class="clubcal-lite-list__header" data-clubcal-list-toggle style="border-left-color: ' . esc_attr($accent_color) . ';">';
+			$html .= '<div class="clubcal-lite-list__info">';
+			$html .= '<h3 class="clubcal-lite-list__title">' . esc_html(get_the_title()) . '</h3>';
+			$html .= '<div class="clubcal-lite-list__meta">';
+			if ($date_text !== '') {
+				$html .= '<span class="clubcal-lite-list__date">' . esc_html($date_text) . '</span>';
+			}
+			if ($location !== '') {
+				$html .= '<span class="clubcal-lite-list__location">' . esc_html($location) . '</span>';
+			}
+			$html .= '</div>';
+			$html .= '<div class="clubcal-lite-list__excerpt">' . wp_kses_post($excerpt) . '</div>';
+			$html .= '</div>';
+			$html .= '<div class="clubcal-lite-list__chevron" aria-hidden="true">';
+			$html .= '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+			$html .= '</div>';
+			$html .= '</div>';
+			$html .= '<div class="clubcal-lite-list__content" data-clubcal-list-content aria-hidden="true">';
+			$html .= '<div class="clubcal-lite-list__content-inner">' . wp_kses_post($full_content) . '</div>';
+			$html .= '<p class="clubcal-lite-list__link"><a href="' . esc_url(get_permalink()) . '">' . esc_html__('Open event page', 'clubcal-lite') . '</a></p>';
+			$html .= '</div>';
+			$html .= '</article>';
+		}
+
+		wp_reset_postdata();
+
+		$html .= '</div>';
+
+		return $html;
+	}
+
+	/**
+	 * Safely truncate HTML content without breaking tags.
+	 *
+	 * @param string $html    The HTML content to truncate.
+	 * @param int    $length  Maximum character length (default 100).
+	 * @param string $suffix  Suffix to append if truncated (default '...').
+	 * @return string Truncated HTML with closed tags.
+	 */
+	private function safe_truncate_html(string $html, int $length = 100, string $suffix = '...'): string {
+		// Strip HTML tags first to get plain text length
+		$plain_text = wp_strip_all_tags($html);
+		$plain_text = html_entity_decode($plain_text, ENT_QUOTES, 'UTF-8');
+		$plain_text = trim($plain_text);
+
+		// If content is short enough, return sanitized HTML
+		if (mb_strlen($plain_text) <= $length) {
+			return wp_kses_post($html);
+		}
+
+		// Truncate plain text and add suffix
+		$truncated = mb_substr($plain_text, 0, $length);
+
+		// Try to break at a word boundary
+		$last_space = mb_strrpos($truncated, ' ');
+		if ($last_space !== false && $last_space > $length * 0.7) {
+			$truncated = mb_substr($truncated, 0, $last_space);
+		}
+
+		return esc_html($truncated) . $suffix;
+	}
+
+	/**
+	 * Enqueue assets for the events list shortcode.
+	 */
+	private function maybe_enqueue_list_assets(): void {
+		// Enqueue base stylesheet
+		wp_enqueue_style(
+			'clubcal-lite',
+			plugins_url('style.css', __FILE__),
+			[],
+			self::VERSION
+		);
+
+		// Inline JavaScript for list expand/collapse
+		$inline_js = "(function(){\n"
+			. "  function initListItems(){\n"
+			. "    var items = document.querySelectorAll('[data-clubcal-list-item]');\n"
+			. "    items.forEach(function(item){\n"
+			. "      var toggle = item.querySelector('[data-clubcal-list-toggle]');\n"
+			. "      var content = item.querySelector('[data-clubcal-list-content]');\n"
+			. "      if(!toggle || !content){ return; }\n"
+			. "      toggle.addEventListener('click', function(e){\n"
+			. "        e.preventDefault();\n"
+			. "        var isExpanded = item.classList.contains('is-expanded');\n"
+			. "        item.classList.toggle('is-expanded');\n"
+			. "        content.setAttribute('aria-hidden', isExpanded ? 'true' : 'false');\n"
+			. "      });\n"
+			. "    });\n"
+			. "  }\n"
+			. "  if(document.readyState === 'loading'){\n"
+			. "    document.addEventListener('DOMContentLoaded', initListItems);\n"
+			. "  } else {\n"
+			. "    initListItems();\n"
+			. "  }\n"
+			. "})();";
+
+		wp_add_inline_script('clubcal-lite-list', $inline_js);
+
+		// Register a dummy script to attach the inline JS
+		wp_register_script('clubcal-lite-list', '', [], self::VERSION, true);
+		wp_enqueue_script('clubcal-lite-list');
 	}
 
 	public function enqueue_frontend_assets(): void {
@@ -458,14 +672,26 @@ final class ClubCal_Lite {
 			. "    var category = el.getAttribute('data-category') || '';\n"
 			. "    var initialView = el.getAttribute('data-view') || 'dayGridMonth';\n"
 			. "    var initialDate = el.getAttribute('data-initial-date') || '';\n"
+			. "    var listMonths = parseInt(el.getAttribute('data-list-months') || '3', 10);\n"
+			. "    if(isNaN(listMonths) || listMonths < 1){ listMonths = 3; }\n"
+			. "    if(listMonths > 12){ listMonths = 12; }\n"
+			. "    var listDuration = { months: listMonths };\n"
+			. "    var listButtonText = listMonths === 1 ? '1 månad' : listMonths + ' månader';\n"
 			. "    var calendar = new FullCalendar.Calendar(el, {\n"
-			. "      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' },\n"
+			. "      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listRange' },\n"
 			. "      locale: 'sv',\n"
 			. "      firstDay: 1,\n"
-			. "      buttonText: { today: 'Idag', month: 'Månad', week: 'Vecka', day: 'Dag', list: 'Lista', dayGridMonth: 'Månad', listWeek: 'Veckolista' },\n"
+			. "      views: {\n"
+			. "        listRange: {\n"
+			. "          type: 'list',\n"
+			. "          duration: listDuration,\n"
+			. "          buttonText: listButtonText\n"
+			. "        }\n"
+			. "      },\n"
+			. "      buttonText: { today: 'Idag', month: 'Månad', week: 'Vecka', day: 'Dag', list: 'Lista', dayGridMonth: 'Månad' },\n"
 			. "      height: 'auto',\n"
 			. "      expandRows: true,\n"
-			. "      initialView: initialView,\n"
+			. "      initialView: initialView === 'listWeek' ? 'listRange' : initialView,\n"
 			. "      initialDate: initialDate || undefined,\n"
 			. "      eventMouseEnter: function(info){\n"
 			. "        try {\n"
