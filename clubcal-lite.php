@@ -688,16 +688,25 @@ final class ClubCal_Lite {
 			. "      var existing = qs('[data-clubcal-legend]', calEl);\n"
 			. "      if(existing && existing.parentNode){ existing.parentNode.removeChild(existing); }\n"
 			. "      var map = {};\n"
+			. "      var isUncatMap = {};\n"
 			. "      (events||[]).forEach(function(ev){\n"
-			. "        var p = ev && ev.extendedProps ? ev.extendedProps : {};\n"
-			. "        var name = (p.categoryName || '').trim();\n"
-			. "        var dot = (p.dotColor || '').trim();\n"
-			. "        if(!name || !dot){ return; }\n"
-			. "        map[name] = dot;\n"
+			. "        var name = ev && ev.extendedProps ? ev.extendedProps.categoryName : '';\n"
+			. "        var color = ev && ev.extendedProps ? ev.extendedProps.dotColor : '';\n"
+			. "        var isUncat = !!(ev && ev.extendedProps && ev.extendedProps.isUncategorized);\n"
+			. "        if(!name || !color){ return; }\n"
+			. "        name = String(name).trim();\n"
+			. "        color = String(color).trim();\n"
+			. "        if(!name || !color){ return; }\n"
+			. "        if(!map[name]){ map[name] = color; isUncatMap[name] = isUncat; }\n"
 			. "      });\n"
 			. "      var names = Object.keys(map);\n"
 			. "      if(!names.length){ return; }\n"
-			. "      names.sort(function(a,b){ return a.localeCompare(b); });\n"
+			. "      names.sort(function(a,b){\n"
+			. "        var au = !!isUncatMap[a];\n"
+			. "        var bu = !!isUncatMap[b];\n"
+			. "        if(au !== bu){ return au ? 1 : -1; }\n"
+			. "        return a.localeCompare(b);\n"
+			. "      });\n"
 			. "      var wrap = document.createElement('div');\n"
 			. "      wrap.setAttribute('data-clubcal-legend', '1');\n"
 			. "      wrap.className = 'clubcal-lite-legend';\n"
@@ -1051,6 +1060,7 @@ final class ClubCal_Lite {
 			$color = (string) ($cat['color'] ?? '');
 			$name = (string) ($cat['name'] ?? '');
 			$has_category = (bool) ($cat['has_category'] ?? false);
+			$event['extendedProps']['isUncategorized'] = !$has_category;
 			if ($has_category) {
 				$event['backgroundColor'] = $color;
 				$event['borderColor'] = $color;
