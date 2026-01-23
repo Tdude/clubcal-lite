@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 0.2.1
+ * Version: 0.2.2
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -12,9 +12,19 @@ if (!defined('ABSPATH')) {
 }
 
 final class ClubCal_Lite {
-	public const VERSION = '0.2.1';
+	public const VERSION = '0.2.2';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
+	private const CATEGORY_FALLBACK_PALETTE = [
+		'#2563eb',
+		'#16a34a',
+		'#dc2626',
+		'#7c3aed',
+		'#ea580c',
+		'#0891b2',
+		'#ca8a04',
+		'#be185d',
+	];
 	public const TAX_TAG = 'event_tag';
 	private const AJAX_ACTION_EVENTS = 'clubcal_lite_events';
 	private const AJAX_ACTION_EVENT_DETAILS = 'clubcal_lite_event_details';
@@ -304,66 +314,28 @@ final class ClubCal_Lite {
 		return wp_date('c', $timestamp);
 	}
 
-	private function rotate_hex_hue(string $hex, float $degrees): string {
-		$hex = trim($hex);
-		if ($hex === '') {
-			return $hex;
+	private function get_category_display_data(int $post_id): array {
+		$categories = wp_get_post_terms($post_id, self::TAX_CATEGORY);
+		if (!empty($categories) && !is_wp_error($categories)) {
+			$primary_category = $categories[0];
+			$color = (string) get_term_meta($primary_category->term_id, 'clubcal_category_color', true);
+			if ($color === '') {
+				$idx = absint($primary_category->term_id) % count(self::CATEGORY_FALLBACK_PALETTE);
+				$color = self::CATEGORY_FALLBACK_PALETTE[$idx];
+			}
+			return [
+				'has_category' => true,
+				'name' => $primary_category->name,
+				'color' => $color,
+			];
 		}
 
-		$rgb = $this->hex_to_rgb($hex);
-		if ($rgb === null) {
-			return $hex;
-		}
-
-		// Compact hue rotation in RGB space (YIQ method)
-		$r = $rgb['r'] / 255;
-		$g = $rgb['g'] / 255;
-		$b = $rgb['b'] / 255;
-
-		$yiq_y = 0.299 * $r + 0.587 * $g + 0.114 * $b;
-		$yiq_i = 0.596 * $r - 0.275 * $g - 0.321 * $b;
-		$yiq_q = 0.212 * $r - 0.523 * $g + 0.311 * $b;
-
-		$rad = deg2rad($degrees);
-		$cos = cos($rad);
-		$sin = sin($rad);
-		$i2 = $yiq_i * $cos - $yiq_q * $sin;
-		$q2 = $yiq_i * $sin + $yiq_q * $cos;
-
-		$r2 = $yiq_y + 0.956 * $i2 + 0.621 * $q2;
-		$g2 = $yiq_y - 0.272 * $i2 - 0.647 * $q2;
-		$b2 = $yiq_y - 1.106 * $i2 + 1.703 * $q2;
-
-		return $this->rgb_to_hex(
-			(int) round(max(0, min(1, $r2)) * 255),
-			(int) round(max(0, min(1, $g2)) * 255),
-			(int) round(max(0, min(1, $b2)) * 255)
-		);
-	}
-
-	private function hex_to_rgb(string $hex): ?array {
-		$hex = ltrim($hex, '#');
-		if (strlen($hex) === 3) {
-			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-		}
-		if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
-			return null;
-		}
 		return [
-			'r' => hexdec(substr($hex, 0, 2)),
-			'g' => hexdec(substr($hex, 2, 2)),
-			'b' => hexdec(substr($hex, 4, 2)),
+			'has_category' => false,
+			'name' => esc_html__('Uncategorized', 'clubcal-lite'),
+			'color' => '#111827',
 		];
 	}
-
-	private function rgb_to_hex(int $r, int $g, int $b): string {
-		$r = max(0, min(255, $r));
-		$g = max(0, min(255, $g));
-		$b = max(0, min(255, $b));
-		return sprintf('#%02x%02x%02x', $r, $g, $b);
-	}
-
-
 
 	public function register_shortcodes(): void {
 		add_shortcode('club_calendar', [$this, 'shortcode_club_calendar']);
@@ -1075,31 +1047,20 @@ final class ClubCal_Lite {
 				$event['extendedProps']['excerpt'] = $excerpt_plain;
 			}
 
-			// Get the primary category and its color
-			$categories = wp_get_post_terms($post->ID, self::TAX_CATEGORY);
-			if (!empty($categories) && !is_wp_error($categories)) {
-				$primary_category = $categories[0];
-				$color = (string) get_term_meta($primary_category->term_id, 'clubcal_category_color', true);
-				if ($color === '') {
-					$palette = [
-						'#2563eb', // blue
-						'#16a34a', // green
-						'#dc2626', // red
-						'#7c3aed', // purple
-						'#ea580c', // orange
-						'#0891b2', // cyan
-						'#ca8a04', // amber
-						'#be185d', // pink
-					];
-					$idx = absint($primary_category->term_id) % count($palette);
-					$color = $palette[$idx];
-				}
+			$cat = $this->get_category_display_data($post->ID);
+			$color = (string) ($cat['color'] ?? '');
+			$name = (string) ($cat['name'] ?? '');
+			$has_category = (bool) ($cat['has_category'] ?? false);
+			if ($has_category) {
 				$event['backgroundColor'] = $color;
-				$dot_color = $this->rotate_hex_hue($color, 65);
-				$event['borderColor'] = $dot_color;
-				$event['extendedProps']['categoryName'] = $primary_category->name;
-				$event['extendedProps']['dotColor'] = $dot_color;
+				$event['borderColor'] = $color;
+			} else {
+				$event['backgroundColor'] = '#ffffff';
+				$event['borderColor'] = $color;
+				$event['textColor'] = $color;
 			}
+			$event['extendedProps']['categoryName'] = $name;
+			$event['extendedProps']['dotColor'] = $color;
 
 			$events[] = $event;
 		}
@@ -1156,12 +1117,24 @@ final class ClubCal_Lite {
 		$permalink = get_permalink($post);
 		$content_html = apply_filters('the_content', $post->post_content);
 
+		$cat = $this->get_category_display_data($post->ID);
+		$badge_name = (string) ($cat['name'] ?? '');
+		$badge_color = (string) ($cat['color'] ?? '');
+
 		$html = '';
 		$html .= '<div class="clubcal-lite-event">';
 		$html .= '<h3 class="clubcal-lite-event__title">' . esc_html($title) . '</h3>';
 
 		if ($date_text !== '') {
-			$html .= '<p class="clubcal-lite-event__datetime">' . esc_html($date_text) . '</p>';
+			$html .= '<p class="clubcal-lite-event__datetime">' . esc_html($date_text);
+			if ($badge_name !== '' && $badge_color !== '') {
+				$html .= '<span class="clubcal-lite-event__badge" style="--clubcal-badge-color:' . esc_attr($badge_color) . '">' . esc_html($badge_name) . '</span>';
+			}
+		} else {
+			if ($badge_name !== '' && $badge_color !== '') {
+				$html .= '<span class="clubcal-lite-event__badge" style="--clubcal-badge-color:' . esc_attr($badge_color) . '">' . esc_html($badge_name) . '</span>';
+			}
+			$html .= '</p>';
 		}
 
 		if ($location !== '') {

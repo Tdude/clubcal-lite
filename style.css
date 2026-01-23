@@ -63,6 +63,26 @@ ClubCal Lite plugin styles
 	margin: 0 32px 8px 0;
 }
 
+.clubcal-lite-event__badge {
+	display: inline-flex;
+	align-items: center;
+	padding: 3px 8px;
+	margin-left: 1em;
+	border-radius: 999px;
+	border: 1px solid var(--clubcal-badge-color, currentColor);
+	color: var(--clubcal-badge-color, currentColor);
+	background: transparent;
+	font-size: 12px;
+	font-weight: 600;
+	line-height: 1.3;
+	vertical-align: top;
+	white-space: nowrap;
+}
+
+.clubcal-lite-event__badge-row {
+	margin: 0 0 8px 0;
+}
+
 .clubcal-lite-event__datetime,
 .clubcal-lite-event__location {
 	margin: 0 0 8px 0;

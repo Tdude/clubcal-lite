@@ -132,3 +132,7 @@ msgstr "valfritt"
 #: clubcal-lite.php
 msgid "Leave empty for single-day events."
 msgstr "Lämna tomt för endagsevenemang."
+
+#: clubcal-lite.php
+msgid "Uncategorized"
+msgstr "Okategoriserat"
