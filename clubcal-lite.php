@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 0.2.0
+ * Version: 0.2.1
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -12,7 +12,7 @@ if (!defined('ABSPATH')) {
 }
 
 final class ClubCal_Lite {
-	public const VERSION = '0.2.0';
+	public const VERSION = '0.2.1';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
@@ -189,8 +189,9 @@ final class ClubCal_Lite {
 		echo '</p>';
 
 		echo '<p>';
-		echo '<label for="clubcal_lite_end"><strong>' . esc_html__('End date/time', 'clubcal-lite') . '</strong></label><br />';
+		echo '<label for="clubcal_lite_end"><strong>' . esc_html__('End date/time', 'clubcal-lite') . '</strong> <span style="font-weight: normal; color: #666;">(' . esc_html__('optional', 'clubcal-lite') . ')</span></label><br />';
 		echo '<input type="datetime-local" id="clubcal_lite_end" name="clubcal_lite_end" value="' . esc_attr($end) . '" style="width: 100%; max-width: 320px;" />';
+		echo '<p class="description" style="margin-top: 4px;">' . esc_html__('Leave empty for single-day events.', 'clubcal-lite') . '</p>';
 		echo '</p>';
 
 		echo '<p>';
@@ -258,7 +259,16 @@ final class ClubCal_Lite {
 			return '';
 		}
 
+		// Handle datetime-local format (YYYY-MM-DDTHH:MM)
+		// Also handle date-only format (YYYY-MM-DD)
 		$timestamp = strtotime($value);
+		if ($timestamp === false) {
+			// Try adding default time if it's a date-only value
+			if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+				$timestamp = strtotime($value . ' 00:00:00');
+			}
+		}
+
 		if ($timestamp === false) {
 			return '';
 		}
@@ -293,6 +303,67 @@ final class ClubCal_Lite {
 
 		return wp_date('c', $timestamp);
 	}
+
+	private function rotate_hex_hue(string $hex, float $degrees): string {
+		$hex = trim($hex);
+		if ($hex === '') {
+			return $hex;
+		}
+
+		$rgb = $this->hex_to_rgb($hex);
+		if ($rgb === null) {
+			return $hex;
+		}
+
+		// Compact hue rotation in RGB space (YIQ method)
+		$r = $rgb['r'] / 255;
+		$g = $rgb['g'] / 255;
+		$b = $rgb['b'] / 255;
+
+		$yiq_y = 0.299 * $r + 0.587 * $g + 0.114 * $b;
+		$yiq_i = 0.596 * $r - 0.275 * $g - 0.321 * $b;
+		$yiq_q = 0.212 * $r - 0.523 * $g + 0.311 * $b;
+
+		$rad = deg2rad($degrees);
+		$cos = cos($rad);
+		$sin = sin($rad);
+		$i2 = $yiq_i * $cos - $yiq_q * $sin;
+		$q2 = $yiq_i * $sin + $yiq_q * $cos;
+
+		$r2 = $yiq_y + 0.956 * $i2 + 0.621 * $q2;
+		$g2 = $yiq_y - 0.272 * $i2 - 0.647 * $q2;
+		$b2 = $yiq_y - 1.106 * $i2 + 1.703 * $q2;
+
+		return $this->rgb_to_hex(
+			(int) round(max(0, min(1, $r2)) * 255),
+			(int) round(max(0, min(1, $g2)) * 255),
+			(int) round(max(0, min(1, $b2)) * 255)
+		);
+	}
+
+	private function hex_to_rgb(string $hex): ?array {
+		$hex = ltrim($hex, '#');
+		if (strlen($hex) === 3) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+			return null;
+		}
+		return [
+			'r' => hexdec(substr($hex, 0, 2)),
+			'g' => hexdec(substr($hex, 2, 2)),
+			'b' => hexdec(substr($hex, 4, 2)),
+		];
+	}
+
+	private function rgb_to_hex(int $r, int $g, int $b): string {
+		$r = max(0, min(255, $r));
+		$g = max(0, min(255, $g));
+		$b = max(0, min(255, $b));
+		return sprintf('#%02x%02x%02x', $r, $g, $b);
+	}
+
+
 
 	public function register_shortcodes(): void {
 		add_shortcode('club_calendar', [$this, 'shortcode_club_calendar']);
@@ -366,9 +437,14 @@ final class ClubCal_Lite {
 
 		$this->maybe_enqueue_list_assets();
 
+		$post_status = ['publish', 'future'];
+		if (is_user_logged_in() && current_user_can('edit_posts')) {
+			$post_status = 'any';
+		}
+
 		$args = [
 			'post_type'      => self::POST_TYPE,
-			'post_status'    => 'publish',
+			'post_status'    => $post_status,
 			'posts_per_page' => intval($atts['limit']),
 			'orderby'        => 'meta_value',
 			'meta_key'       => '_clubcal_start',
@@ -415,16 +491,26 @@ final class ClubCal_Lite {
 			$post_id = get_the_ID();
 
 			$start_meta = (string) get_post_meta($post_id, '_clubcal_start', true);
+			$end_meta   = (string) get_post_meta($post_id, '_clubcal_end', true);
 			$all_day    = (string) get_post_meta($post_id, '_clubcal_all_day', true);
 			$location   = (string) get_post_meta($post_id, '_clubcal_location', true);
 
 			$start_ts = strtotime($start_meta);
+			$end_ts = strtotime($end_meta);
 			$date_text = '';
 			if ($start_ts !== false) {
+				$has_end = ($end_meta !== '' && $end_ts !== false);
+
 				if ($all_day === '1') {
 					$date_text = wp_date(__('F j, Y', 'clubcal-lite'), $start_ts);
+					if ($has_end) {
+						$date_text .= ' – ' . wp_date(__('F j, Y', 'clubcal-lite'), $end_ts);
+					}
 				} else {
 					$date_text = wp_date(__('F j, Y \a\t H:i', 'clubcal-lite'), $start_ts);
+					if ($has_end) {
+						$date_text .= ' – ' . wp_date(__('F j, Y \a\t H:i', 'clubcal-lite'), $end_ts);
+					}
 				}
 			}
 
@@ -453,14 +539,16 @@ final class ClubCal_Lite {
 			$html .= '<div class="clubcal-lite-list__info">';
 			$html .= '<h3 class="clubcal-lite-list__title">' . esc_html(get_the_title()) . '</h3>';
 			$html .= '<div class="clubcal-lite-list__meta">';
-			if ($date_text !== '') {
-				$html .= '<span class="clubcal-lite-list__date">' . esc_html($date_text) . '</span>';
-			}
 			if ($location !== '') {
 				$html .= '<span class="clubcal-lite-list__location">' . esc_html($location) . '</span>';
 			}
 			$html .= '</div>';
-			$html .= '<div class="clubcal-lite-list__excerpt">' . wp_kses_post($excerpt) . '</div>';
+			$html .= '<div class="clubcal-lite-list__excerpt">';
+			if ($date_text !== '') {
+				$html .= '<span class="clubcal-lite-list__date-inline">' . esc_html($date_text) . '</span> ';
+			}
+			$html .= wp_kses_post($excerpt);
+			$html .= '</div>';
 			$html .= '</div>';
 			$html .= '<div class="clubcal-lite-list__chevron" aria-hidden="true">';
 			$html .= '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
@@ -620,6 +708,109 @@ final class ClubCal_Lite {
 			. "  function qs(sel, root){ return (root||document).querySelector(sel); }\n"
 			. "  function qsa(sel, root){ return Array.prototype.slice.call((root||document).querySelectorAll(sel)); }\n"
 			. "  function getModal(){ return qs('.clubcal-lite-modal'); }\n"
+			. "  function renderLegend(calEl, events){\n"
+			. "    try {\n"
+			. "      if(!calEl){ return; }\n"
+			. "      var table = qs('.fc-list-table', calEl);\n"
+			. "      if(!table){ return; }\n"
+			. "      var existing = qs('[data-clubcal-legend]', calEl);\n"
+			. "      if(existing && existing.parentNode){ existing.parentNode.removeChild(existing); }\n"
+			. "      var map = {};\n"
+			. "      (events||[]).forEach(function(ev){\n"
+			. "        var p = ev && ev.extendedProps ? ev.extendedProps : {};\n"
+			. "        var name = (p.categoryName || '').trim();\n"
+			. "        var dot = (p.dotColor || '').trim();\n"
+			. "        if(!name || !dot){ return; }\n"
+			. "        map[name] = dot;\n"
+			. "      });\n"
+			. "      var names = Object.keys(map);\n"
+			. "      if(!names.length){ return; }\n"
+			. "      names.sort(function(a,b){ return a.localeCompare(b); });\n"
+			. "      var wrap = document.createElement('div');\n"
+			. "      wrap.setAttribute('data-clubcal-legend', '1');\n"
+			. "      wrap.className = 'clubcal-lite-legend';\n"
+			. "      names.forEach(function(name){\n"
+			. "        var item = document.createElement('span');\n"
+			. "        item.className = 'clubcal-lite-legend__item';\n"
+			. "        var dot = document.createElement('span');\n"
+			. "        dot.className = 'clubcal-lite-legend__dot';\n"
+			. "        dot.style.borderColor = map[name];\n"
+			. "        dot.title = name;\n"
+			. "        var label = document.createElement('span');\n"
+			. "        label.className = 'clubcal-lite-legend__label';\n"
+			. "        label.textContent = name;\n"
+			. "        item.appendChild(dot);\n"
+			. "        item.appendChild(label);\n"
+			. "        wrap.appendChild(item);\n"
+			. "      });\n"
+			. "      table.parentNode.insertBefore(wrap, table);\n"
+			. "    } catch(e) {}\n"
+			. "  }\n"
+			. "  function normalizeListView(calEl){\n"
+			. "    try {\n"
+			. "      if(!calEl){ return; }\n"
+			. "      // Always hide the separate date header rows in list view\n"
+			. "      qsa('tr.fc-list-day', calEl).forEach(function(dayRow){ dayRow.style.display = 'none'; });\n"
+			. "    } catch(e) {}\n"
+			. "  }\n"
+			. "  function decorateListEventRow(info){\n"
+			. "    try {\n"
+			. "      if(!info || !info.el || !info.event){ return; }\n"
+			. "      var tr = info.el.closest('tr');\n"
+			. "      if(!tr || !tr.classList.contains('fc-list-event')){ return; }\n"
+			. "      if(!tr.closest('.fc-list')){ return; }\n"
+			. "      qsa('[data-clubcal-list-excerpt]', tr).forEach(function(el){ el.parentNode && el.parentNode.removeChild(el); });\n"
+			. "      // Rebuild time cell as: Date, then timeText (e.g. 'Hela dagen')\n"
+			. "      var timeCell = qs('td.fc-list-event-time', tr);\n"
+			. "      if(timeCell){\n"
+			. "        var startStr = info.event.startStr || '';\n"
+			. "        var dateStr = startStr.split('T')[0];\n"
+			. "        var restText = (info.timeText || '').trim();\n"
+			. "        timeCell.textContent = '';\n"
+			. "        var strong = document.createElement('span');\n"
+			. "        strong.style.fontWeight = '600';\n"
+			. "        strong.textContent = dateStr;\n"
+			. "        timeCell.appendChild(strong);\n"
+			. "        if(restText){ timeCell.appendChild(document.createTextNode(' ' + restText)); }\n"
+			. "      }\n"
+			. "      // Append excerpt under title\n"
+			. "      var titleCell = qs('td.fc-list-event-title', tr) || qs('.fc-list-event-title', tr);\n"
+			. "      if(titleCell){\n"
+			. "        var titleLink = qs('a', titleCell);\n"
+			. "        if(titleLink){ titleLink.classList.add('clubcal-lite-fc-title'); }\n"
+			. "        var catName = (info.event.extendedProps && info.event.extendedProps.categoryName) ? String(info.event.extendedProps.categoryName) : '';\n"
+			. "        var dotColor = (info.event.extendedProps && info.event.extendedProps.dotColor) ? String(info.event.extendedProps.dotColor) : '';\n"
+			. "        catName = catName.trim();\n"
+			. "        dotColor = dotColor.trim();\n"
+			. "        var dotEl = qs('.fc-list-event-dot', tr);\n"
+			. "        var graphicCell = qs('td.fc-list-event-graphic', tr);\n"
+			. "        if(dotEl && dotColor){\n"
+			. "          dotEl.style.display = '';\n"
+			. "          dotEl.style.borderColor = dotColor;\n"
+			. "          dotEl.style.borderTopColor = dotColor;\n"
+			. "          dotEl.style.borderRightColor = dotColor;\n"
+			. "          dotEl.style.borderBottomColor = dotColor;\n"
+			. "          dotEl.style.borderLeftColor = dotColor;\n"
+			. "          if(graphicCell){ graphicCell.style.padding = ''; }\n"
+			. "        } else if(dotEl){\n"
+			. "          // No category selected -> no dot\n"
+			. "          dotEl.style.display = 'none';\n"
+			. "        }\n"
+			. "        if(dotEl && catName){ dotEl.title = catName; }\n"
+			. "        var excerpt = (info.event.extendedProps && info.event.extendedProps.excerpt) ? String(info.event.extendedProps.excerpt) : '';\n"
+			. "        excerpt = excerpt.trim();\n"
+			. "        if(excerpt){\n"
+			. "          var ex = document.createElement('div');\n"
+			. "          ex.setAttribute('data-clubcal-list-excerpt', '1');\n"
+			. "          ex.className = 'clubcal-lite-fc-excerpt';\n"
+			. "          ex.style.opacity = '0.85';\n"
+			. "          ex.style.marginTop = '2px';\n"
+			. "          ex.textContent = excerpt;\n"
+			. "          titleCell.appendChild(ex);\n"
+			. "        }\n"
+			. "      }\n"
+			. "    } catch(e) {}\n"
+			. "  }\n"
 			. "  var hoverCardEl = null;\n"
 			. "  function removeHoverCard(immediate){\n"
 			. "    if(!hoverCardEl){ return; }\n"
@@ -646,6 +837,13 @@ final class ClubCal_Lite {
 			. "    hoverCardEl.style.top = rect.top + 'px';\n"
 			. "    hoverCardEl.style.width = rect.width + 'px';\n"
 			. "    hoverCardEl.style.zIndex = '100000';\n"
+			. "    // Preserve the dot's border-color from the original element\n"
+			. "    var origDot = sourceEl.querySelector('.fc-list-event-dot');\n"
+			. "    var cloneDot = hoverCardEl.querySelector('.fc-list-event-dot');\n"
+			. "    if(origDot && cloneDot){\n"
+			. "      var dotColor = origDot.style.borderColor || window.getComputedStyle(origDot).borderColor;\n"
+			. "      if(dotColor){ cloneDot.style.borderColor = dotColor; }\n"
+			. "    }\n"
 			. "    document.body.appendChild(hoverCardEl);\n"
 			. "    window.requestAnimationFrame(function(){\n"
 			. "      if(hoverCardEl){ hoverCardEl.classList.add('is-visible'); }\n"
@@ -681,6 +879,11 @@ final class ClubCal_Lite {
 			. "      headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listRange' },\n"
 			. "      locale: 'sv',\n"
 			. "      firstDay: 1,\n"
+			. "      datesSet: function(){ window.setTimeout(function(){ normalizeListView(el); }, 0); },\n"
+			. "      eventsSet: function(events){\n"
+			. "        window.setTimeout(function(){ normalizeListView(el); }, 0);\n"
+			. "        window.setTimeout(function(){ renderLegend(el, events); }, 0);\n"
+			. "      },\n"
 			. "      views: {\n"
 			. "        listRange: {\n"
 			. "          type: 'list',\n"
@@ -701,6 +904,10 @@ final class ClubCal_Lite {
 			. "      },\n"
 			. "      eventMouseLeave: function(){\n"
 			. "        removeHoverCard(false);\n"
+			. "      },\n"
+			. "      eventDidMount: function(info){\n"
+			. "        window.setTimeout(function(){ normalizeListView(el); }, 0);\n"
+			. "        window.setTimeout(function(){ decorateListEventRow(info); }, 0);\n"
 			. "      },\n"
 			. "      eventClick: function(info){\n"
 			. "        if(info && info.jsEvent){ info.jsEvent.preventDefault(); }\n"
@@ -766,9 +973,14 @@ final class ClubCal_Lite {
 			wp_send_json_error('Invalid date range', 400);
 		}
 
+		$post_status = ['publish', 'future'];
+		if (is_user_logged_in() && current_user_can('edit_posts')) {
+			$post_status = 'any';
+		}
+
 		$args = [
 			'post_type' => self::POST_TYPE,
-			'post_status' => 'publish',
+			'post_status' => $post_status,
 			'posts_per_page' => 500,
 			'orderby' => 'meta_value',
 			'meta_key' => '_clubcal_start',
@@ -795,53 +1007,98 @@ final class ClubCal_Lite {
 		$events = [];
 
 		foreach ($query->posts as $post) {
-			$start_meta = (string) get_post_meta($post->ID, '_clubcal_start', true);
+			$start_meta = trim((string) get_post_meta($post->ID, '_clubcal_start', true));
+			if ($start_meta === '') {
+				continue;
+			}
+
 			$start_meta_ts = strtotime($start_meta);
 			if ($start_meta_ts === false) {
 				continue;
 			}
 
-			$end_meta = (string) get_post_meta($post->ID, '_clubcal_end', true);
-			$end_meta_ts = strtotime($end_meta);
-			
-			// Use end time if available, otherwise use start time
-			$event_end_ts = ($end_meta_ts !== false) ? $end_meta_ts : $start_meta_ts;
-			
+			$end_meta = trim((string) get_post_meta($post->ID, '_clubcal_end', true));
+			$end_meta_ts = ($end_meta !== '') ? strtotime($end_meta) : false;
+			$has_end_date = ($end_meta_ts !== false && $end_meta_ts > 0);
+
+			$all_day_meta = (string) get_post_meta($post->ID, '_clubcal_all_day', true);
+
+			// If no end date is set, treat as all-day event (user's preference)
+			$is_all_day = ($all_day_meta === '1') || !$has_end_date;
+
+			// For range comparison: use end date if available, otherwise end of start day
+			$event_end_ts = $has_end_date ? $end_meta_ts : strtotime(wp_date('Y-m-d', $start_meta_ts) . ' 23:59:59');
+
 			// Show event if it overlaps with the visible range
-			// Event overlaps if: event_start <= range_end AND event_end >= range_start
 			if ($start_meta_ts > $end_ts || $event_end_ts < $start_ts) {
 				continue;
 			}
 
-			$all_day = (string) get_post_meta($post->ID, '_clubcal_all_day', true);
-			$location = (string) get_post_meta($post->ID, '_clubcal_location', true);
+			$location = trim((string) get_post_meta($post->ID, '_clubcal_location', true));
+
+			// Format start date for FullCalendar
+			$start_iso = $this->format_datetime_for_iso($start_meta);
+			if ($start_iso === '') {
+				continue;
+			}
 
 			$event = [
 				'id' => $post->ID,
-				'title' => get_the_title($post),
-				'start' => $this->format_datetime_for_iso($start_meta),
+				'title' => html_entity_decode(get_the_title($post), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
+				'start' => $start_iso,
 				'url' => get_permalink($post),
-				'allDay' => ($all_day === '1'),
+				'allDay' => $is_all_day,
 			];
 
-			$end_iso = $this->format_datetime_for_iso($end_meta);
-			if ($end_iso !== '') {
-				$event['end'] = $end_iso;
+			// Add end date only if explicitly set
+			if ($has_end_date) {
+				$end_iso = $this->format_datetime_for_iso($end_meta);
+				if ($end_iso !== '') {
+					$event['end'] = $end_iso;
+				}
 			}
 
+			$excerpt_plain = trim(html_entity_decode(wp_strip_all_tags((string) $post->post_content), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+			if ($excerpt_plain !== '') {
+				$was_truncated = (mb_strlen($excerpt_plain) > 100);
+				$excerpt_plain = mb_substr($excerpt_plain, 0, 100);
+				if ($was_truncated) {
+					$excerpt_plain .= '...';
+				}
+			}
+
+			$event['extendedProps'] = [];
 			if ($location !== '') {
-				$event['extendedProps'] = ['location' => $location];
+				$event['extendedProps']['location'] = $location;
+			}
+			if ($excerpt_plain !== '') {
+				$event['extendedProps']['excerpt'] = $excerpt_plain;
 			}
 
 			// Get the primary category and its color
 			$categories = wp_get_post_terms($post->ID, self::TAX_CATEGORY);
 			if (!empty($categories) && !is_wp_error($categories)) {
 				$primary_category = $categories[0];
-				$color = get_term_meta($primary_category->term_id, 'clubcal_category_color', true);
-				if (!empty($color)) {
-					$event['backgroundColor'] = $color;
-					$event['borderColor'] = $color;
+				$color = (string) get_term_meta($primary_category->term_id, 'clubcal_category_color', true);
+				if ($color === '') {
+					$palette = [
+						'#2563eb', // blue
+						'#16a34a', // green
+						'#dc2626', // red
+						'#7c3aed', // purple
+						'#ea580c', // orange
+						'#0891b2', // cyan
+						'#ca8a04', // amber
+						'#be185d', // pink
+					];
+					$idx = absint($primary_category->term_id) % count($palette);
+					$color = $palette[$idx];
 				}
+				$event['backgroundColor'] = $color;
+				$dot_color = $this->rotate_hex_hue($color, 65);
+				$event['borderColor'] = $dot_color;
+				$event['extendedProps']['categoryName'] = $primary_category->name;
+				$event['extendedProps']['dotColor'] = $dot_color;
 			}
 
 			$events[] = $event;
@@ -863,8 +1120,14 @@ final class ClubCal_Lite {
 			wp_send_json_error('Event not found', 404);
 		}
 
-		if ($post->post_type !== self::POST_TYPE || $post->post_status !== 'publish') {
+		if ($post->post_type !== self::POST_TYPE) {
 			wp_send_json_error('Event not available', 404);
+		}
+
+		if ($post->post_status !== 'publish') {
+			if (!(is_user_logged_in() && current_user_can('edit_posts'))) {
+				wp_send_json_error('Event not available', 404);
+			}
 		}
 
 		$start_meta = (string) get_post_meta($post->ID, '_clubcal_start', true);
@@ -906,7 +1169,10 @@ final class ClubCal_Lite {
 		}
 
 		$html .= '<div class="clubcal-lite-event__content">' . wp_kses_post($content_html) . '</div>';
-		$html .= '<p class="clubcal-lite-event__link"><a href="' . esc_url($permalink) . '">' . esc_html__('Open event page', 'clubcal-lite') . '</a></p>';
+		$html .= '<p class="clubcal-lite-event__link"><a href="' . esc_url($permalink) . '">'
+			. esc_html__('Open event page', 'clubcal-lite')
+			. ' <svg class="clubcal-lite-icon clubcal-lite-icon--external" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
+			. '</a></p>';
 		$html .= '</div>';
 
 		wp_send_json_success(['html' => $html]);

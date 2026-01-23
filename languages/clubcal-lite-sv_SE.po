@@ -3,7 +3,7 @@
 # This file is distributed under the same license as the ClubCal Lite plugin.
 msgid ""
 msgstr ""
-"Project-Id-Version: ClubCal Lite 0.1.2\n"
+"Project-Id-Version: ClubCal Lite 0.2.1\n"
 "Report-Msgid-Bugs-To: https://github.com/Tdude\n"
 "POT-Creation-Date: 2025-01-14 12:00+0000\n"
 "PO-Revision-Date: 2025-01-14 12:00+0000\n"
@@ -124,3 +124,11 @@ msgstr "j F Y"
 #: clubcal-lite.php
 msgid "F j, Y \\a\\t H:i"
 msgstr "j F Y \\k\\l H:i"
+
+#: clubcal-lite.php
+msgid "optional"
+msgstr "valfritt"
+
+#: clubcal-lite.php
+msgid "Leave empty for single-day events."
+msgstr "Lämna tomt för endagsevenemang."
