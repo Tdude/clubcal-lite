@@ -61,6 +61,7 @@ ClubCal Lite plugin styles
 
 .clubcal-lite-event__title {
 	margin: 0 32px 8px 0;
+	color: var(--clubcal-text);
 }
 
 .clubcal-lite-event__badge {
