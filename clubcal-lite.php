@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 1.0
+ * Version: 1.1
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -19,7 +19,7 @@ require_once __DIR__ . '/includes/class-clubcal-lite-shortcodes.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-ajax.php';
 
 final class ClubCal_Lite {
-	public const VERSION = '1.0';
+	public const VERSION = '1.1';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
