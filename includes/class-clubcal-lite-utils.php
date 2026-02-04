@@ -16,52 +16,82 @@ final class ClubCal_Lite_Utils {
 		'#be185d',
 	];
 
-	public function normalize_datetime_for_storage(string $value): string {
+	private function parse_datetime_local(string $value): ?\DateTimeImmutable {
 		$value = trim($value);
 		if ($value === '') {
-			return '';
+			return null;
 		}
 
-		$timestamp = strtotime($value);
-		if ($timestamp === false) {
-			if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
-				$timestamp = strtotime($value . ' 00:00:00');
+		$tz = wp_timezone();
+		$value = str_replace('T', ' ', $value);
+
+		$formats = [
+			'Y-m-d H:i',
+			'Y-m-d H:i:s',
+			'Y-m-d',
+		];
+
+		foreach ($formats as $format) {
+			$dt = \DateTimeImmutable::createFromFormat($format, $value, $tz);
+			if ($dt instanceof \DateTimeImmutable) {
+				$errors = \DateTimeImmutable::getLastErrors();
+				if (empty($errors['warning_count']) && empty($errors['error_count'])) {
+					if ($format === 'Y-m-d') {
+						$dt = $dt->setTime(0, 0, 0);
+					}
+					return $dt;
+				}
 			}
 		}
 
-		if ($timestamp === false) {
+		return null;
+	}
+
+	private function parse_stored_datetime(string $stored): ?\DateTimeImmutable {
+		$stored = trim($stored);
+		if ($stored === '') {
+			return null;
+		}
+
+		$tz = wp_timezone();
+		$dt = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $stored, $tz);
+		if (!($dt instanceof \DateTimeImmutable)) {
+			return null;
+		}
+
+		$errors = \DateTimeImmutable::getLastErrors();
+		if (!empty($errors['warning_count']) || !empty($errors['error_count'])) {
+			return null;
+		}
+
+		return $dt;
+	}
+
+	public function normalize_datetime_for_storage(string $value): string {
+		$dt = $this->parse_datetime_local($value);
+		if (!$dt) {
 			return '';
 		}
 
-		return wp_date('Y-m-d H:i:s', $timestamp);
+		return $dt->format('Y-m-d H:i:s');
 	}
 
 	public function format_datetime_for_input(string $stored): string {
-		$stored = trim($stored);
-		if ($stored === '') {
+		$dt = $this->parse_stored_datetime($stored);
+		if (!$dt) {
 			return '';
 		}
 
-		$timestamp = strtotime($stored);
-		if ($timestamp === false) {
-			return '';
-		}
-
-		return wp_date('Y-m-d\\TH:i', $timestamp);
+		return $dt->format('Y-m-d\\TH:i');
 	}
 
 	public function format_datetime_for_iso(string $stored): string {
-		$stored = trim($stored);
-		if ($stored === '') {
+		$dt = $this->parse_stored_datetime($stored);
+		if (!$dt) {
 			return '';
 		}
 
-		$timestamp = strtotime($stored);
-		if ($timestamp === false) {
-			return '';
-		}
-
-		return wp_date('c', $timestamp);
+		return $dt->format('c');
 	}
 
 	public function safe_truncate_html(string $html, int $length = 100, string $suffix = '...'): string {

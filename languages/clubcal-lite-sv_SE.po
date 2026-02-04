@@ -6,18 +6,19 @@ msgstr ""
 "Project-Id-Version: ClubCal Lite 0.2.1\n"
 "Report-Msgid-Bugs-To: https://github.com/Tdude\n"
 "POT-Creation-Date: 2025-01-14 12:00+0000\n"
-"PO-Revision-Date: 2025-01-14 12:00+0000\n"
-"Last-Translator: \n"
+"PO-Revision-Date: 2026-01-28 14:57+0100\n"
+"Last-Translator: Tdude <tibbecodes@gmail.com>\n"
 "Language-Team: Swedish\n"
 "Language: sv_SE\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.8\n"
 
 #: clubcal-lite.php:52
 msgid "Events"
-msgstr "Evenemang"
+msgstr "Evenemang till kalendern"
 
 #: clubcal-lite.php:53
 msgid "Event"
@@ -65,23 +66,23 @@ msgstr "Inga evenemang hittades i papperskorgen."
 
 #: clubcal-lite.php:75
 msgid "Event Categories"
-msgstr "Evenemangskategorier"
+msgstr "Eventkategorier"
 
 #: clubcal-lite.php:76
 msgid "Event Category"
-msgstr "Evenemangskategori"
+msgstr "Eventkategori"
 
 #: clubcal-lite.php:92
 msgid "Event Tags"
-msgstr "Evenemangstaggar"
+msgstr "Eventtaggar"
 
 #: clubcal-lite.php:93
 msgid "Event Tag"
-msgstr "Evenemangstagg"
+msgstr "Eventtagg"
 
 #: clubcal-lite.php:112
 msgid "Event Details"
-msgstr "Evenemangsdetaljer"
+msgstr "Eventdetaljer"
 
 #: clubcal-lite.php:128
 msgid "Color"
