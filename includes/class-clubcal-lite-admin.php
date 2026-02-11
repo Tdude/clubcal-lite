@@ -36,12 +36,12 @@ final class ClubCal_Lite_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Club Calendar', 'clubcal-lite' ); ?></h1>
-			<h2 style="margin-top: 18px;"><?php echo esc_html__( 'Quick start and shortcode usage', 'clubcal-lite' ); ?></h2>
+			<h2 style="margin-top: 18px;"><?php echo esc_html__( 'Shortcode usage', 'clubcal-lite' ); ?></h2>
 			<div style="max-width: 980px; background: #fff; border: 1px solid #dcdcde; padding: 18px; border-radius: 8px; line-height: 1.6;">
 				<?php if ( $readme_excerpt !== '' ) : ?>
 					<pre style="white-space: pre-wrap; margin: 0;"><?php echo esc_html( $readme_excerpt ); ?></pre>
 				<?php else : ?>
-					<p style="margin-top: 0;"><?php echo esc_html__( 'No quick start information found in the README files.', 'clubcal-lite' ); ?></p>
+					<p style="margin-top: 0;"><?php echo esc_html__( 'No shortcode usage information found in the README files.', 'clubcal-lite' ); ?></p>
 				<?php endif; ?>
 			</div>
 		</div>
@@ -61,7 +61,6 @@ final class ClubCal_Lite_Admin {
 		$fallback_content = file_exists( $fallback ) ? (string) file_get_contents( $fallback ) : '';
 
 		$sections = array(
-			'## Quick start',
 			'## Shortcode options',
 			'## Calendar Shortcode Updated',
 		);
