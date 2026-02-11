@@ -147,14 +147,14 @@ body.is-dark .clubcal-lite-hovercard,
 	background-color: #151a22;
 }
 
-body.dark .clubcal-lite-hovercard.fc-list-event,
-body.dark .clubcal-lite-hovercard.fc-list-event td,
-body.dark-mode .clubcal-lite-hovercard.fc-list-event,
-body.dark-mode .clubcal-lite-hovercard.fc-list-event td,
-body.is-dark .clubcal-lite-hovercard.fc-list-event,
-body.is-dark .clubcal-lite-hovercard.fc-list-event td,
-[data-theme="dark"] .clubcal-lite-hovercard.fc-list-event,
-[data-theme="dark"] .clubcal-lite-hovercard.fc-list-event td {
+body.dark .clubcal-lite-hovercard .fc-list-event,
+body.dark .clubcal-lite-hovercard .fc-list-event td,
+body.dark-mode .clubcal-lite-hovercard .fc-list-event,
+body.dark-mode .clubcal-lite-hovercard .fc-list-event td,
+body.is-dark .clubcal-lite-hovercard .fc-list-event,
+body.is-dark .clubcal-lite-hovercard .fc-list-event td,
+[data-theme="dark"] .clubcal-lite-hovercard .fc-list-event,
+[data-theme="dark"] .clubcal-lite-hovercard .fc-list-event td {
 	background-color: #151a22;
 	border: none;
 }
@@ -250,8 +250,8 @@ body.is-dark .clubcal-lite-hovercard.fc-list-event td,
 		background-color: var(--clubcal-surface);
 	}
 
-	.clubcal-lite-hovercard.fc-list-event,
-	.clubcal-lite-hovercard.fc-list-event td {
+	.clubcal-lite-hovercard .fc-list-event,
+	.clubcal-lite-hovercard .fc-list-event td {
 		background-color: var(--clubcal-surface);
 		border: none;
 	}
@@ -329,19 +329,30 @@ body.is-dark .clubcal-lite-hovercard.fc-list-event td,
 }
 
 /* Hovercard in list view */
-.clubcal-lite-hovercard.fc-list-event {
-	padding: 8px 12px;
-	background-color: #fff;
+.clubcal-lite-hovercard .fc-list-table {
+	width: 100%;
+	border-collapse: collapse;
+	background-color: transparent;
 }
 
-.clubcal-lite-hovercard.fc-list-event td {
+.clubcal-lite-hovercard .fc-list-event td {
 	border: none !important;
 	box-shadow: none !important;
 }
 
+.clubcal-lite-hovercard .fc-list-table td {
+	box-sizing: border-box;
+	padding: 10px 12px !important;
+	background-color: transparent;
+}
+
+.clubcal-lite-hovercard .fc-list-table td.fc-list-event-graphic {
+	padding: 10px 10px !important;
+}
+
 /* FullCalendar list view dot spacing */
 .clubcal-lite-calendar .fc .fc-list-event-graphic {
-	padding: 0 10px;
+	padding: 10px 10px;
 }
 
 .clubcal-lite-calendar .fc .fc-list-event-dot {

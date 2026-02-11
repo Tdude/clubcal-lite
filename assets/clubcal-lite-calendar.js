@@ -44,14 +44,43 @@
     }
 
     var rect = sourceEl.getBoundingClientRect();
-    hoverCardEl = sourceEl.cloneNode(true);
-    hoverCardEl.classList.add('clubcal-lite-hovercard');
-    hoverCardEl.style.position = 'fixed';
-    hoverCardEl.style.left = rect.left + 'px';
-    hoverCardEl.style.top = rect.top + 'px';
-    hoverCardEl.style.width = rect.width + 'px';
-    hoverCardEl.style.zIndex = '100000';
-    hoverCardEl.style.display = 'flex';
+    var listRow = null;
+    if (sourceEl && sourceEl.tagName === 'TR' && sourceEl.classList && sourceEl.classList.contains('fc-list-event')) {
+      listRow = sourceEl;
+    } else if (sourceEl && sourceEl.closest) {
+      var maybeTr = sourceEl.closest('tr.fc-list-event');
+      if (maybeTr && maybeTr.closest && maybeTr.closest('.fc-list')) {
+        listRow = maybeTr;
+      }
+    }
+
+    if (listRow) {
+      hoverCardEl = document.createElement('div');
+      hoverCardEl.className = 'clubcal-lite-hovercard';
+      hoverCardEl.style.position = 'fixed';
+      hoverCardEl.style.left = rect.left + 'px';
+      hoverCardEl.style.top = rect.top + 'px';
+      hoverCardEl.style.width = rect.width + 'px';
+      hoverCardEl.style.zIndex = '100000';
+      hoverCardEl.style.display = 'block';
+
+      var table = document.createElement('table');
+      table.className = 'fc-list-table';
+      var tbody = document.createElement('tbody');
+      var rowClone = listRow.cloneNode(true);
+      tbody.appendChild(rowClone);
+      table.appendChild(tbody);
+      hoverCardEl.appendChild(table);
+    } else {
+      hoverCardEl = sourceEl.cloneNode(true);
+      hoverCardEl.classList.add('clubcal-lite-hovercard');
+      hoverCardEl.style.position = 'fixed';
+      hoverCardEl.style.left = rect.left + 'px';
+      hoverCardEl.style.top = rect.top + 'px';
+      hoverCardEl.style.width = rect.width + 'px';
+      hoverCardEl.style.zIndex = '100000';
+      hoverCardEl.style.display = 'flex';
+    }
 
     var origDot = sourceEl.querySelector('.fc-list-event-dot');
     var cloneDot = hoverCardEl.querySelector('.fc-list-event-dot');
@@ -429,9 +458,6 @@
       eventMouseEnter: function (info) {
         try {
           if (!info || !info.el) {
-            return;
-          }
-          if (info.el && info.el.closest && info.el.closest('.fc-list')) {
             return;
           }
           showHoverCard(info.el);
