@@ -14,6 +14,79 @@ final class ClubCal_Lite_Admin {
 	public function register(): void {
 		add_action('add_meta_boxes', [$this, 'register_meta_boxes']);
 		add_action('save_post_' . ClubCal_Lite::POST_TYPE, [$this, 'save_meta_boxes']);
+		add_action('admin_menu', [$this, 'register_settings_page']);
+	}
+
+	public function register_settings_page(): void {
+		add_options_page(
+			__( 'Club Calendar', 'clubcal-lite' ),
+			__( 'Club Calendar', 'clubcal-lite' ),
+			'manage_options',
+			'clubcal-lite',
+			[$this, 'render_settings_page']
+		);
+	}
+
+	public function render_settings_page(): void {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$readme_excerpt = $this->get_readme_help_excerpt();
+		?>
+		<div class="wrap">
+			<h1><?php echo esc_html__( 'Club Calendar', 'clubcal-lite' ); ?></h1>
+			<p><?php echo esc_html__( 'Quick start and shortcode usage:', 'clubcal-lite' ); ?></p>
+			<div style="max-width: 980px;">
+				<pre style="white-space: pre-wrap; background: #fff; border: 1px solid #dcdcde; padding: 16px; border-radius: 8px; line-height: 1.6;"><?php echo esc_html( $readme_excerpt ); ?></pre>
+			</div>
+		</div>
+		<?php
+	}
+
+	private function get_readme_help_excerpt(): string {
+		$plugin_root = dirname( __DIR__ );
+		$locale = function_exists( 'determine_locale' ) ? (string) determine_locale() : (string) get_locale();
+		$locale_lower = strtolower( $locale );
+		$is_swedish = ( strpos( $locale_lower, 'sv' ) === 0 );
+
+		$preferred = $is_swedish ? $plugin_root . '/README-SVENSKA.md' : $plugin_root . '/README.md';
+		$fallback = $is_swedish ? $plugin_root . '/README.md' : $plugin_root . '/README-SVENSKA.md';
+
+		$readme_path = file_exists( $preferred ) ? $preferred : $fallback;
+		$content = file_exists( $readme_path ) ? (string) file_get_contents( $readme_path ) : '';
+		if ( $content === '' ) {
+			return '';
+		}
+
+		$sections = array(
+			'## Quick start',
+			'## Shortcode options',
+			'## Calendar Shortcode Updated',
+		);
+
+		$out = array();
+		foreach ( $sections as $heading ) {
+			$excerpt = $this->extract_readme_section( $content, $heading );
+			if ( $excerpt !== '' ) {
+				$out[] = trim( $excerpt );
+			}
+		}
+
+		return trim( implode( "\n\n", $out ) );
+	}
+
+	private function extract_readme_section( string $content, string $heading ): string {
+		$pos = stripos( $content, $heading );
+		if ( $pos === false ) {
+			return '';
+		}
+
+		$start = $pos;
+		$next_pos = strpos( $content, "\n## ", $start + strlen( $heading ) );
+		$end = $next_pos === false ? strlen( $content ) : $next_pos + 1;
+
+		return substr( $content, $start, $end - $start );
 	}
 
 	public function register_meta_boxes(): void {
