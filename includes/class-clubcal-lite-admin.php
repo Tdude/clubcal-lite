@@ -36,9 +36,13 @@ final class ClubCal_Lite_Admin {
 		?>
 		<div class="wrap">
 			<h1><?php echo esc_html__( 'Club Calendar', 'clubcal-lite' ); ?></h1>
-			<p><?php echo esc_html__( 'Quick start and shortcode usage:', 'clubcal-lite' ); ?></p>
-			<div style="max-width: 980px;">
-				<pre style="white-space: pre-wrap; background: #fff; border: 1px solid #dcdcde; padding: 16px; border-radius: 8px; line-height: 1.6;"><?php echo esc_html( $readme_excerpt ); ?></pre>
+			<h2 style="margin-top: 18px;"><?php echo esc_html__( 'Quick start and shortcode usage', 'clubcal-lite' ); ?></h2>
+			<div style="max-width: 980px; background: #fff; border: 1px solid #dcdcde; padding: 18px; border-radius: 8px; line-height: 1.6;">
+				<?php if ( $readme_excerpt !== '' ) : ?>
+					<pre style="white-space: pre-wrap; margin: 0;"><?php echo esc_html( $readme_excerpt ); ?></pre>
+				<?php else : ?>
+					<p style="margin-top: 0;"><?php echo esc_html__( 'No quick start information found in the README files.', 'clubcal-lite' ); ?></p>
+				<?php endif; ?>
 			</div>
 		</div>
 		<?php
@@ -53,11 +57,8 @@ final class ClubCal_Lite_Admin {
 		$preferred = $is_swedish ? $plugin_root . '/README-SVENSKA.md' : $plugin_root . '/README.md';
 		$fallback = $is_swedish ? $plugin_root . '/README.md' : $plugin_root . '/README-SVENSKA.md';
 
-		$readme_path = file_exists( $preferred ) ? $preferred : $fallback;
-		$content = file_exists( $readme_path ) ? (string) file_get_contents( $readme_path ) : '';
-		if ( $content === '' ) {
-			return '';
-		}
+		$preferred_content = file_exists( $preferred ) ? (string) file_get_contents( $preferred ) : '';
+		$fallback_content = file_exists( $fallback ) ? (string) file_get_contents( $fallback ) : '';
 
 		$sections = array(
 			'## Quick start',
@@ -65,11 +66,24 @@ final class ClubCal_Lite_Admin {
 			'## Calendar Shortcode Updated',
 		);
 
+		$excerpt = $this->build_readme_excerpt_from_content( $preferred_content, $sections );
+		if ( $excerpt !== '' ) {
+			return $excerpt;
+		}
+
+		return $this->build_readme_excerpt_from_content( $fallback_content, $sections );
+	}
+
+	private function build_readme_excerpt_from_content( string $content, array $sections ): string {
+		if ( $content === '' ) {
+			return '';
+		}
+
 		$out = array();
 		foreach ( $sections as $heading ) {
-			$excerpt = $this->extract_readme_section( $content, $heading );
-			if ( $excerpt !== '' ) {
-				$out[] = trim( $excerpt );
+			$section = $this->extract_readme_section( $content, (string) $heading );
+			if ( $section !== '' ) {
+				$out[] = trim( $section );
 			}
 		}
 
