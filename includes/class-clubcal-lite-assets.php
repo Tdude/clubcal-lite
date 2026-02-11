@@ -25,6 +25,16 @@ final class ClubCal_Lite_Assets {
 			ClubCal_Lite::VERSION
 		);
 
+		$accent = get_theme_mod( 'upaif_color_accent_red', '#9b2d30' );
+		$text = get_theme_mod( 'upaif_color_text_dark', '#2d1e12' );
+		$bg = get_theme_mod( 'upaif_color_bg_primary', '#f5f0e6' );
+		$accent = sanitize_hex_color( $accent ) ?: '#9b2d30';
+		$text = sanitize_hex_color( $text ) ?: '#2d1e12';
+		$bg = sanitize_hex_color( $bg ) ?: '#f5f0e6';
+
+		$inline_css = ".clubcal-lite-list{--clubcal-list-bg:rgba(255,255,255,.88);--clubcal-list-text:{$text};--clubcal-list-muted:rgba(45,30,18,.65);--clubcal-list-border:rgba(45,30,18,.10);} .clubcal-lite-list__link a{color:{$accent};}";
+		wp_add_inline_style( 'clubcal-lite', $inline_css );
+
 		wp_enqueue_script(
 			'clubcal-lite-list',
 			plugins_url('assets/clubcal-lite-list.js', $this->plugin->plugin_file()),
@@ -59,6 +69,16 @@ final class ClubCal_Lite_Assets {
 			[],
 			ClubCal_Lite::VERSION
 		);
+
+		$accent = get_theme_mod( 'upaif_color_accent_red', '#9b2d30' );
+		$text = get_theme_mod( 'upaif_color_text_dark', '#2d1e12' );
+		$bg = get_theme_mod( 'upaif_color_bg_primary', '#f5f0e6' );
+		$accent = sanitize_hex_color( $accent ) ?: '#9b2d30';
+		$text = sanitize_hex_color( $text ) ?: '#2d1e12';
+		$bg = sanitize_hex_color( $bg ) ?: '#f5f0e6';
+
+		$inline_css = ".clubcal-lite-calendar,.clubcal-lite-modal{--clubcal-bg:{$bg};--clubcal-surface:rgba(255,255,255,.90);--clubcal-text:{$text};--clubcal-muted:rgba(45,30,18,.65);--clubcal-border:rgba(45,30,18,.12);--clubcal-accent:{$accent};--clubcal-backdrop:rgba(0,0,0,.55);} .clubcal-lite-event__link a{color:var(--clubcal-accent);}";
+		wp_add_inline_style( 'clubcal-lite', $inline_css );
 
 		wp_enqueue_style(
 			'fullcalendar',
