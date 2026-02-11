@@ -279,6 +279,24 @@ body.is-dark .clubcal-lite-hovercard.fc-list-event td,
 	background-color: #f5f5f5;
 }
 
+/* FullCalendar list view: keep td padding consistent on hover (avoid alignment jump) */
+.clubcal-lite-calendar .fc .fc-list-table td {
+	box-sizing: border-box;
+	padding: 10px 12px;
+}
+
+.clubcal-lite-calendar .fc .fc-list-event:hover td {
+	padding: 10px 12px;
+}
+
+.clubcal-lite-calendar .fc .fc-list-event-graphic {
+	padding: 10px 10px;
+}
+
+.clubcal-lite-calendar .fc .fc-list-event-time {
+	white-space: nowrap;
+}
+
 .fc-h-event .fc-event-title,
 .clubcal-lite-hovercard .fc-event-title {
 	white-space: normal;

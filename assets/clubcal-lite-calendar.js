@@ -209,9 +209,6 @@
           dotEl.style.borderRightColor = dotColor;
           dotEl.style.borderBottomColor = dotColor;
           dotEl.style.borderLeftColor = dotColor;
-          if (graphicCell) {
-            graphicCell.style.padding = '';
-          }
         } else if (dotEl) {
           dotEl.style.display = 'none';
         }
