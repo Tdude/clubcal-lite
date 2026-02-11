@@ -302,11 +302,13 @@ body.is-dark .clubcal-lite-hovercard .fc-list-event td,
 .clubcal-lite-calendar .fc .fc-list-event td,
 .clubcal-lite-calendar .fc .fc-list-event:hover td {
 	padding: 10px 12px !important;
+	vertical-align: top !important;
 }
 
 .clubcal-lite-calendar .fc td.fc-list-event-graphic,
 .clubcal-lite-calendar .fc .fc-list-event:hover td.fc-list-event-graphic {
 	padding: 10px 10px !important;
+	vertical-align: top !important;
 }
 
 .fc-h-event .fc-event-title,
@@ -343,11 +345,13 @@ body.is-dark .clubcal-lite-hovercard .fc-list-event td,
 .clubcal-lite-hovercard .fc-list-table td {
 	box-sizing: border-box;
 	padding: 10px 12px !important;
+	vertical-align: top !important;
 	background-color: transparent;
 }
 
 .clubcal-lite-hovercard .fc-list-table td.fc-list-event-graphic {
 	padding: 10px 10px !important;
+	vertical-align: top !important;
 }
 
 /* FullCalendar list view dot spacing */
