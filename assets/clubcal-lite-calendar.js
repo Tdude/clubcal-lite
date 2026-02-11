@@ -431,6 +431,9 @@
           if (!info || !info.el) {
             return;
           }
+          if (info.el && info.el.closest && info.el.closest('.fc-list')) {
+            return;
+          }
           showHoverCard(info.el);
         } catch (e) {}
       },

@@ -280,6 +280,7 @@ body.is-dark .clubcal-lite-hovercard.fc-list-event td,
 }
 
 /* FullCalendar list view: keep td padding consistent on hover (avoid alignment jump) */
+
 .clubcal-lite-calendar .fc .fc-list-table td {
 	box-sizing: border-box;
 	padding: 10px 12px;
@@ -295,6 +296,17 @@ body.is-dark .clubcal-lite-hovercard.fc-list-event td,
 
 .clubcal-lite-calendar .fc .fc-list-event-time {
 	white-space: nowrap;
+}
+
+/* FullCalendar list view: override any hover-specific td padding resets */
+.clubcal-lite-calendar .fc .fc-list-event td,
+.clubcal-lite-calendar .fc .fc-list-event:hover td {
+	padding: 10px 12px !important;
+}
+
+.clubcal-lite-calendar .fc td.fc-list-event-graphic,
+.clubcal-lite-calendar .fc .fc-list-event:hover td.fc-list-event-graphic {
+	padding: 10px 10px !important;
 }
 
 .fc-h-event .fc-event-title,
