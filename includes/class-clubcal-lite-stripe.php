@@ -157,8 +157,8 @@ class ClubCal_Lite_Stripe {
         $session_data = array(
             'payment_method_types[]' => 'card',
             'mode'                   => 'payment',
-            'ui_mode'                => 'embedded',
-            'return_url'             => $success_url . '&session_id={CHECKOUT_SESSION_ID}',
+            'success_url'            => $success_url,
+            'cancel_url'             => $cancel_url,
             'client_reference_id'    => $booking_id,
             'customer_email'         => $customer_email,
             'line_items[0][price_data][currency]'     => 'sek',
@@ -180,14 +180,11 @@ class ClubCal_Lite_Stripe {
         // Store session ID on booking
         update_post_meta( $booking_id, '_stripe_session_id', $response['id'] );
 
-        $settings = self::get_settings();
-
         return array(
-            'success'         => true,
-            'session_id'      => $response['id'],
-            'client_secret'   => $response['client_secret'] ?? '',
-            'publishable_key' => $settings['publishable_key'],
-            'amount'          => $amount,
+            'success'      => true,
+            'session_id'   => $response['id'],
+            'checkout_url' => $response['url'],
+            'amount'       => $amount,
         );
     }
 

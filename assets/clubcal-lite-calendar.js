@@ -476,17 +476,18 @@
               var p = data.data.payment;
               html += '<div class="clubcal-lite-payment-info" data-payment-reference="' + (p.reference || '') + '" data-check-url="' + (p.check_url || '') + '">';
               
-              if (p.method === 'stripe' && p.client_secret) {
-                // Stripe Embedded Checkout - stays on page
+              if (p.method === 'stripe' && p.checkout_url) {
+                // Stripe Checkout - redirect
                 html += '<div class="clubcal-lite-stripe-checkout">';
-                html += '<div class="clubcal-lite-stripe-header">';
-                html += '<span class="clubcal-lite-stripe-amount">' + p.amount + ' ' + (p.currency || 'SEK') + '</span>';
-                html += '</div>';
-                html += '<div id="stripe-checkout-container" style="min-height: 300px;"></div>';
+                html += '<p>' + (window.ClubCalLite.i18n.redirectingToPayment || 'Skickar dig till betalning...') + '</p>';
+                html += '<a href="' + p.checkout_url + '" class="clubcal-lite-stripe-button">' +
+                  (window.ClubCalLite.i18n.proceedToPayment || 'Gå till betalning') + ' →</a>';
                 html += '</div>';
                 
-                // Store data for after render
-                messageEl._stripeData = p;
+                // Auto-redirect after short delay
+                setTimeout(function() {
+                  window.location.href = p.checkout_url;
+                }, 1000);
                 
               } else if (p.method === 'klarna' && p.html_snippet) {
                 // Klarna checkout - embed their widget
@@ -545,12 +546,6 @@
             
             messageEl.innerHTML = html;
             messageEl.style.display = 'block';
-            
-            // Initialize Stripe Embedded Checkout if needed
-            if (messageEl._stripeData) {
-              initStripeEmbeddedCheckout(messageEl._stripeData, messageEl);
-              delete messageEl._stripeData;
-            }
             
             // Start polling for payment status if Swish
             if (data.data.payment && data.data.payment.method === 'swish' && data.data.payment.check_url) {
