@@ -408,6 +408,7 @@
     var formData = new FormData(form);
     formData.append('action', window.ClubCalLite.actionBook);
     formData.append('_ajax_nonce', window.ClubCalLite.nonceBook);
+    formData.append('return_url', window.location.href);
 
     fetch(window.ClubCalLite.ajaxUrl, {
       method: 'POST',
@@ -775,43 +776,12 @@
     calendar.render();
   }
 
-  function checkUrlConfirmation() {
-    var params = new URLSearchParams(window.location.search);
-    var confirmed = params.get('booking_confirmed');
-    var code = params.get('code');
-    
-    if (confirmed === '1' && code) {
-      // Show confirmation toast/banner
-      var toast = document.createElement('div');
-      toast.className = 'clubcal-lite-confirmation-toast';
-      toast.innerHTML = '<div class="clubcal-lite-toast-content">' +
-        '<span class="clubcal-lite-toast-icon">✓</span>' +
-        '<div class="clubcal-lite-toast-text">' +
-        '<strong>' + (window.ClubCalLite && window.ClubCalLite.i18n && window.ClubCalLite.i18n.bookingConfirmed || 'Bokning bekräftad!') + '</strong><br>' +
-        (window.ClubCalLite && window.ClubCalLite.i18n && window.ClubCalLite.i18n.confirmationCode || 'Bekräftelsekod:') + ' <code>' + code + '</code>' +
-        '</div>' +
-        '<button class="clubcal-lite-toast-close" onclick="this.parentNode.parentNode.remove()">×</button>' +
-        '</div>';
-      document.body.appendChild(toast);
-      
-      // Auto-hide after 10 seconds
-      setTimeout(function() {
-        if (toast.parentNode) {
-          toast.classList.add('clubcal-lite-toast-hiding');
-          setTimeout(function() { toast.remove(); }, 300);
-        }
-      }, 10000);
-      
-      // Clean URL
-      var cleanUrl = window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-    }
-  }
+  // Toast is handled by PHP (ClubCal_Lite_Booking::maybe_show_confirmation_toast)
+  // which is more reliable and works without JS
 
   function init() {
     ensureSvLocale();
     initModal();
-    checkUrlConfirmation();
     qsa('.clubcal-lite-calendar').forEach(initOne);
   }
 

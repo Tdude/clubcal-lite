@@ -111,9 +111,10 @@ class ClubCal_Lite_Stripe {
      * @param int    $booking_id  Booking post ID
      * @param float  $amount      Payment amount in SEK (optional, reads from event meta if not provided)
      * @param string $description Product description (optional, uses event title if not provided)
+     * @param string $return_url  URL to return to after payment (optional, uses home_url if not provided)
      * @return array Success array with session_id and checkout_url, or error array
      */
-    public function create_checkout_session( int $booking_id, float $amount = 0, string $description = '' ): array {
+    public function create_checkout_session( int $booking_id, float $amount = 0, string $description = '', string $return_url = '' ): array {
         $booking = get_post( $booking_id );
         if ( ! $booking || $booking->post_type !== 'club_booking' ) {
             return array( 'success' => false, 'error' => __( 'Invalid booking', 'clubcal-lite' ) );
@@ -142,17 +143,20 @@ class ClubCal_Lite_Stripe {
         // Stripe expects amount in smallest currency unit (öre for SEK)
         $amount_in_ore = (int) ( $amount * 100 );
 
-        // Build return URLs
-        $return_url = get_permalink( $event_id ) ?: home_url();
+        // Build return URLs - use provided URL or fall back to home
+        $base_url = ! empty( $return_url ) ? $return_url : home_url();
+        // Strip any existing query params for clean URLs
+        $base_url = strtok( $base_url, '?' );
+        
         $success_url = add_query_arg( array(
             'booking_confirmed' => '1',
             'code'              => $confirmation_code,
-        ), $return_url );
+        ), $base_url );
         
         $cancel_url = add_query_arg( array(
             'booking_cancelled' => '1',
             'booking_id'        => $booking_id,
-        ), $return_url );
+        ), $base_url );
 
         $session_data = array(
             'payment_method_types[]'              => 'card',

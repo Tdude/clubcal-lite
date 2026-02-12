@@ -123,6 +123,10 @@ final class ClubCal_Lite_Booking {
 
 	/**
 	 * Create a new booking
+	 * 
+	 * @param int   $event_id   Event post ID
+	 * @param array $data       Booking data (name, email, phone, return_url)
+	 * @return array Result with success/error
 	 */
 	public function create_booking(int $event_id, array $data): array {
 		// Validate event exists
@@ -140,6 +144,7 @@ final class ClubCal_Lite_Booking {
 		$name  = sanitize_text_field($data['name'] ?? '');
 		$email = sanitize_email($data['email'] ?? '');
 		$phone = sanitize_text_field($data['phone'] ?? '');
+		$return_url = esc_url_raw($data['return_url'] ?? '');
 
 		if (empty($name) || empty($email)) {
 			return ['success' => false, 'error' => __('Name and email are required.', 'clubcal-lite')];
@@ -217,7 +222,8 @@ final class ClubCal_Lite_Booking {
 					$stripe_result = $stripe->create_checkout_session(
 						$booking_id,
 						$amount,
-						$event_title
+						$event_title,
+						$return_url
 					);
 					
 					if (!empty($stripe_result['success'])) {
@@ -367,9 +373,10 @@ final class ClubCal_Lite_Booking {
 		}
 
 		$result = $this->create_booking($event_id, [
-			'name'  => $_POST['name'] ?? '',
-			'email' => $_POST['email'] ?? '',
-			'phone' => $_POST['phone'] ?? '',
+			'name'       => $_POST['name'] ?? '',
+			'email'      => $_POST['email'] ?? '',
+			'phone'      => $_POST['phone'] ?? '',
+			'return_url' => $_POST['return_url'] ?? '',
 		]);
 
 		if ($result['success']) {
@@ -712,59 +719,8 @@ final class ClubCal_Lite_Booking {
 		$code_text = esc_html__('Bekräftelsekod:', 'clubcal-lite');
 		$code_escaped = esc_html($code);
 
+		// Styles are in style.css
 		?>
-		<style>
-		.clubcal-lite-confirmation-toast {
-			position: fixed;
-			top: 20px;
-			left: 50%;
-			transform: translateX(-50%);
-			z-index: 100001;
-			animation: clubcal-toast-in 0.3s ease;
-		}
-		@keyframes clubcal-toast-in {
-			from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
-			to { opacity: 1; transform: translateX(-50%) translateY(0); }
-		}
-		.clubcal-lite-toast-content {
-			display: flex;
-			align-items: center;
-			gap: 12px;
-			padding: 16px 20px;
-			background: #fff;
-			border-radius: 12px;
-			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
-			border-left: 4px solid #2e7d32;
-		}
-		.clubcal-lite-toast-icon {
-			font-size: 24px;
-			color: #2e7d32;
-		}
-		.clubcal-lite-toast-text {
-			font-size: 14px;
-			line-height: 1.4;
-		}
-		.clubcal-lite-toast-text code {
-			display: inline-block;
-			padding: 2px 8px;
-			background: #f5f5f5;
-			border-radius: 4px;
-			font-family: monospace;
-			font-weight: 600;
-		}
-		.clubcal-lite-toast-close {
-			background: none;
-			border: none;
-			font-size: 24px;
-			cursor: pointer;
-			color: #999;
-			padding: 0 4px;
-			line-height: 1;
-		}
-		.clubcal-lite-toast-close:hover {
-			color: #333;
-		}
-		</style>
 		<div class="clubcal-lite-confirmation-toast" id="clubcal-confirmation-toast">
 			<div class="clubcal-lite-toast-content">
 				<span class="clubcal-lite-toast-icon">✓</span>
