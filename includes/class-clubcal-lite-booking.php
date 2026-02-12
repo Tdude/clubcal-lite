@@ -17,6 +17,7 @@ final class ClubCal_Lite_Booking {
 		add_action('init', [$this, 'register_booking_cpt']);
 		add_action('wp_ajax_' . self::AJAX_ACTION_BOOK, [$this, 'ajax_book']);
 		add_action('wp_ajax_nopriv_' . self::AJAX_ACTION_BOOK, [$this, 'ajax_book']);
+		add_action('wp_footer', [$this, 'maybe_show_confirmation_toast']);
 		
 		// Admin enhancements
 		add_action('add_meta_boxes', [$this, 'register_bookings_meta_box']);
@@ -690,5 +691,103 @@ final class ClubCal_Lite_Booking {
 		// Redirect back
 		wp_redirect(get_edit_post_link($booking_id, 'raw'));
 		exit;
+	}
+
+	/**
+	 * Show confirmation toast when returning from payment
+	 */
+	public function maybe_show_confirmation_toast(): void {
+		if (is_admin()) {
+			return;
+		}
+
+		$confirmed = isset($_GET['booking_confirmed']) ? sanitize_text_field($_GET['booking_confirmed']) : '';
+		$code = isset($_GET['code']) ? sanitize_text_field($_GET['code']) : '';
+
+		if ($confirmed !== '1' || empty($code)) {
+			return;
+		}
+
+		$booking_text = esc_html__('Bokning bekräftad!', 'clubcal-lite');
+		$code_text = esc_html__('Bekräftelsekod:', 'clubcal-lite');
+		$code_escaped = esc_html($code);
+
+		?>
+		<style>
+		.clubcal-lite-confirmation-toast {
+			position: fixed;
+			top: 20px;
+			left: 50%;
+			transform: translateX(-50%);
+			z-index: 100001;
+			animation: clubcal-toast-in 0.3s ease;
+		}
+		@keyframes clubcal-toast-in {
+			from { opacity: 0; transform: translateX(-50%) translateY(-20px); }
+			to { opacity: 1; transform: translateX(-50%) translateY(0); }
+		}
+		.clubcal-lite-toast-content {
+			display: flex;
+			align-items: center;
+			gap: 12px;
+			padding: 16px 20px;
+			background: #fff;
+			border-radius: 12px;
+			box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+			border-left: 4px solid #2e7d32;
+		}
+		.clubcal-lite-toast-icon {
+			font-size: 24px;
+			color: #2e7d32;
+		}
+		.clubcal-lite-toast-text {
+			font-size: 14px;
+			line-height: 1.4;
+		}
+		.clubcal-lite-toast-text code {
+			display: inline-block;
+			padding: 2px 8px;
+			background: #f5f5f5;
+			border-radius: 4px;
+			font-family: monospace;
+			font-weight: 600;
+		}
+		.clubcal-lite-toast-close {
+			background: none;
+			border: none;
+			font-size: 24px;
+			cursor: pointer;
+			color: #999;
+			padding: 0 4px;
+			line-height: 1;
+		}
+		.clubcal-lite-toast-close:hover {
+			color: #333;
+		}
+		</style>
+		<div class="clubcal-lite-confirmation-toast" id="clubcal-confirmation-toast">
+			<div class="clubcal-lite-toast-content">
+				<span class="clubcal-lite-toast-icon">✓</span>
+				<div class="clubcal-lite-toast-text">
+					<strong><?php echo $booking_text; ?></strong><br>
+					<?php echo $code_text; ?> <code><?php echo $code_escaped; ?></code>
+				</div>
+				<button class="clubcal-lite-toast-close" onclick="this.parentNode.parentNode.remove()">×</button>
+			</div>
+		</div>
+		<script>
+		(function() {
+			// Clean URL
+			if (window.history && window.history.replaceState) {
+				window.history.replaceState({}, document.title, window.location.pathname);
+			}
+			// Auto-hide after 10 seconds
+			setTimeout(function() {
+				var t = document.getElementById('clubcal-confirmation-toast');
+				if (t) t.remove();
+			}, 10000);
+		})();
+		</script>
+		<?php
 	}
 }
