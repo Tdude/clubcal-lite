@@ -1201,3 +1201,97 @@ body.is-dark .clubcal-lite-list__link a,
 		color: var(--clubcal-muted, #aaa);
 	}
 }
+
+/* Confirmation Toast */
+.clubcal-lite-confirmation-toast {
+	position: fixed;
+	top: 20px;
+	left: 50%;
+	transform: translateX(-50%);
+	z-index: 100001;
+	animation: clubcal-toast-in 0.3s ease;
+}
+
+@keyframes clubcal-toast-in {
+	from {
+		opacity: 0;
+		transform: translateX(-50%) translateY(-20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateX(-50%) translateY(0);
+	}
+}
+
+.clubcal-lite-toast-hiding {
+	animation: clubcal-toast-out 0.3s ease forwards;
+}
+
+@keyframes clubcal-toast-out {
+	to {
+		opacity: 0;
+		transform: translateX(-50%) translateY(-20px);
+	}
+}
+
+.clubcal-lite-toast-content {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	padding: 16px 20px;
+	background: #fff;
+	border-radius: 12px;
+	box-shadow: 0 8px 32px rgba(0, 0, 0, 0.15);
+	border-left: 4px solid #2e7d32;
+}
+
+.clubcal-lite-toast-icon {
+	font-size: 24px;
+	color: #2e7d32;
+}
+
+.clubcal-lite-toast-text {
+	font-size: 14px;
+	line-height: 1.4;
+}
+
+.clubcal-lite-toast-text code {
+	display: inline-block;
+	padding: 2px 8px;
+	background: #f5f5f5;
+	border-radius: 4px;
+	font-family: monospace;
+	font-weight: 600;
+}
+
+.clubcal-lite-toast-close {
+	background: none;
+	border: none;
+	font-size: 24px;
+	cursor: pointer;
+	color: #999;
+	padding: 0 4px;
+	line-height: 1;
+}
+
+.clubcal-lite-toast-close:hover {
+	color: #333;
+}
+
+/* Stripe Embedded Checkout */
+.clubcal-lite-stripe-header {
+	text-align: center;
+	margin-bottom: 16px;
+}
+
+.clubcal-lite-stripe-amount {
+	font-size: 1.5rem;
+	font-weight: 700;
+	color: #635bff;
+}
+
+#stripe-checkout-container {
+	min-height: 300px;
+	border-radius: 8px;
+	overflow: hidden;
+}

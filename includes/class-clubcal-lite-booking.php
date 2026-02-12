@@ -211,7 +211,7 @@ final class ClubCal_Lite_Booking {
 				$payment_method = $payment_settings['payment_method'] ?? 'manual';
 				
 				if ($payment_method === 'stripe' && $amount > 0 && class_exists('ClubCal_Lite_Stripe')) {
-					// Use Stripe Checkout
+					// Use Stripe Embedded Checkout
 					$stripe = new ClubCal_Lite_Stripe();
 					$stripe_result = $stripe->create_checkout_session(
 						$booking_id,
@@ -221,11 +221,12 @@ final class ClubCal_Lite_Booking {
 					
 					if (!empty($stripe_result['success'])) {
 						$payment_info = [
-							'method'       => 'stripe',
-							'amount'       => $amount,
-							'currency'     => 'SEK',
-							'session_id'   => $stripe_result['session_id'],
-							'checkout_url' => $stripe_result['checkout_url'],
+							'method'          => 'stripe',
+							'amount'          => $amount,
+							'currency'        => 'SEK',
+							'session_id'      => $stripe_result['session_id'],
+							'client_secret'   => $stripe_result['client_secret'],
+							'publishable_key' => $stripe_result['publishable_key'],
 						];
 
 						// Log pending payment

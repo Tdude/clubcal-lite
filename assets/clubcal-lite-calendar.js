@@ -320,6 +320,49 @@
   }
 
   var paymentPollInterval = null;
+  var stripeInstance = null;
+  var stripeCheckout = null;
+
+  function loadStripeJs(callback) {
+    if (window.Stripe) {
+      callback();
+      return;
+    }
+    var script = document.createElement('script');
+    script.src = 'https://js.stripe.com/v3/';
+    script.onload = callback;
+    document.head.appendChild(script);
+  }
+
+  function initStripeEmbeddedCheckout(paymentData, containerEl) {
+    var container = qs('#stripe-checkout-container', containerEl);
+    if (!container) return;
+
+    container.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="clubcal-lite-status-spinner"></span> ' + 
+      (window.ClubCalLite.i18n.loadingPayment || 'Laddar betalning...') + '</div>';
+
+    loadStripeJs(function() {
+      try {
+        stripeInstance = window.Stripe(paymentData.publishable_key);
+        
+        stripeInstance.initEmbeddedCheckout({
+          clientSecret: paymentData.client_secret
+        }).then(function(checkout) {
+          stripeCheckout = checkout;
+          container.innerHTML = '';
+          checkout.mount(container);
+        }).catch(function(err) {
+          container.innerHTML = '<div style="color: #c62828; padding: 10px;">' + 
+            (window.ClubCalLite.i18n.paymentError || 'Kunde inte ladda betalning. ') + 
+            (err.message || '') + '</div>';
+        });
+      } catch (err) {
+        container.innerHTML = '<div style="color: #c62828; padding: 10px;">' + 
+          (window.ClubCalLite.i18n.paymentError || 'Kunde inte ladda betalning. ') + 
+          (err.message || '') + '</div>';
+      }
+    });
+  }
 
   function startPaymentPolling(checkUrl, containerEl) {
     if (paymentPollInterval) {
@@ -433,19 +476,17 @@
               var p = data.data.payment;
               html += '<div class="clubcal-lite-payment-info" data-payment-reference="' + (p.reference || '') + '" data-check-url="' + (p.check_url || '') + '">';
               
-              if (p.method === 'stripe' && p.checkout_url) {
-                // Stripe - redirect to Stripe Checkout
+              if (p.method === 'stripe' && p.client_secret) {
+                // Stripe Embedded Checkout - stays on page
                 html += '<div class="clubcal-lite-stripe-checkout">';
-                html += '<p>' + (window.ClubCalLite.i18n.redirectingToPayment || 'Redirecting to payment...') + '</p>';
-                html += '<a href="' + p.checkout_url + '" class="clubcal-lite-stripe-button">';
-                html += (window.ClubCalLite.i18n.proceedToPayment || 'Proceed to Payment') + ' →';
-                html += '</a>';
+                html += '<div class="clubcal-lite-stripe-header">';
+                html += '<span class="clubcal-lite-stripe-amount">' + p.amount + ' ' + (p.currency || 'SEK') + '</span>';
+                html += '</div>';
+                html += '<div id="stripe-checkout-container" style="min-height: 300px;"></div>';
                 html += '</div>';
                 
-                // Auto-redirect after short delay
-                setTimeout(function() {
-                  window.location.href = p.checkout_url;
-                }, 1500);
+                // Store data for after render
+                messageEl._stripeData = p;
                 
               } else if (p.method === 'klarna' && p.html_snippet) {
                 // Klarna checkout - embed their widget
@@ -504,6 +545,12 @@
             
             messageEl.innerHTML = html;
             messageEl.style.display = 'block';
+            
+            // Initialize Stripe Embedded Checkout if needed
+            if (messageEl._stripeData) {
+              initStripeEmbeddedCheckout(messageEl._stripeData, messageEl);
+              delete messageEl._stripeData;
+            }
             
             // Start polling for payment status if Swish
             if (data.data.payment && data.data.payment.method === 'swish' && data.data.payment.check_url) {
@@ -775,9 +822,43 @@
     calendar.render();
   }
 
+  function checkUrlConfirmation() {
+    var params = new URLSearchParams(window.location.search);
+    var confirmed = params.get('booking_confirmed');
+    var code = params.get('code');
+    
+    if (confirmed === '1' && code) {
+      // Show confirmation toast/banner
+      var toast = document.createElement('div');
+      toast.className = 'clubcal-lite-confirmation-toast';
+      toast.innerHTML = '<div class="clubcal-lite-toast-content">' +
+        '<span class="clubcal-lite-toast-icon">✓</span>' +
+        '<div class="clubcal-lite-toast-text">' +
+        '<strong>' + (window.ClubCalLite && window.ClubCalLite.i18n && window.ClubCalLite.i18n.bookingConfirmed || 'Bokning bekräftad!') + '</strong><br>' +
+        (window.ClubCalLite && window.ClubCalLite.i18n && window.ClubCalLite.i18n.confirmationCode || 'Bekräftelsekod:') + ' <code>' + code + '</code>' +
+        '</div>' +
+        '<button class="clubcal-lite-toast-close" onclick="this.parentNode.parentNode.remove()">×</button>' +
+        '</div>';
+      document.body.appendChild(toast);
+      
+      // Auto-hide after 10 seconds
+      setTimeout(function() {
+        if (toast.parentNode) {
+          toast.classList.add('clubcal-lite-toast-hiding');
+          setTimeout(function() { toast.remove(); }, 300);
+        }
+      }, 10000);
+      
+      // Clean URL
+      var cleanUrl = window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+    }
+  }
+
   function init() {
     ensureSvLocale();
     initModal();
+    checkUrlConfirmation();
     qsa('.clubcal-lite-calendar').forEach(initOne);
   }
 
