@@ -110,8 +110,19 @@ final class ClubCal_Lite_Assets {
 				'ajaxUrl' => admin_url('admin-ajax.php'),
 				'actionEvents' => ClubCal_Lite::AJAX_ACTION_EVENTS,
 				'actionDetails' => ClubCal_Lite::AJAX_ACTION_EVENT_DETAILS,
+				'actionBook' => ClubCal_Lite::AJAX_ACTION_BOOK,
 				'nonceEvents' => wp_create_nonce('clubcal_lite_events'),
 				'nonceDetails' => wp_create_nonce('clubcal_lite_event_details'),
+				'nonceBook' => wp_create_nonce('clubcal_lite_book'),
+				'i18n' => [
+					'booking' => __('Booking...', 'clubcal-lite'),
+					'booked' => __('Booked!', 'clubcal-lite'),
+					'bookingSuccess' => __('Your booking is confirmed! Confirmation code:', 'clubcal-lite'),
+					'bookingError' => __('Booking failed. Please try again.', 'clubcal-lite'),
+					'payWithSwish' => __('Pay with Swish:', 'clubcal-lite'),
+					'swishMessage' => __('Message:', 'clubcal-lite'),
+					'amount' => __('Amount:', 'clubcal-lite'),
+				],
 			]
 		);
 	}

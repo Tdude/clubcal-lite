@@ -144,6 +144,21 @@ final class ClubCal_Lite_Ajax {
 			$event['extendedProps']['categoryName'] = $name;
 			$event['extendedProps']['dotColor'] = $color;
 
+			// Add booking info
+			$booking_enabled = get_post_meta($post->ID, '_clubcal_booking_enabled', true) === '1';
+			$event['extendedProps']['bookingEnabled'] = $booking_enabled;
+
+			if ($booking_enabled && class_exists('ClubCal_Lite_Booking')) {
+				$spots_remaining = ClubCal_Lite_Booking::get_spots_remaining($post->ID);
+				$event['extendedProps']['spotsRemaining'] = $spots_remaining;
+				$event['extendedProps']['isFullyBooked'] = ($spots_remaining !== null && $spots_remaining <= 0);
+				
+				$price = get_post_meta($post->ID, '_clubcal_price', true);
+				if ($price) {
+					$event['extendedProps']['price'] = $price;
+				}
+			}
+
 			$events[] = $event;
 		}
 
@@ -228,8 +243,88 @@ final class ClubCal_Lite_Ajax {
 			. esc_html__('Open event page', 'clubcal-lite')
 			. ' <svg class="clubcal-lite-icon clubcal-lite-icon--external" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>'
 			. '</a></p>';
+
+		// Add booking form if enabled
+		$html .= $this->render_booking_form($post->ID);
+
 		$html .= '</div>';
 
 		wp_send_json_success(['html' => $html]);
+	}
+
+	/**
+	 * Render booking form HTML for an event
+	 */
+	private function render_booking_form(int $event_id): string {
+		$booking_enabled = get_post_meta($event_id, '_clubcal_booking_enabled', true) === '1';
+		if (!$booking_enabled) {
+			return '';
+		}
+
+		$price = get_post_meta($event_id, '_clubcal_price', true);
+		$max_spots = (int) get_post_meta($event_id, '_clubcal_max_spots', true);
+		
+		$spots_remaining = null;
+		$is_fully_booked = false;
+		
+		if (class_exists('ClubCal_Lite_Booking')) {
+			$spots_remaining = ClubCal_Lite_Booking::get_spots_remaining($event_id);
+			$is_fully_booked = ClubCal_Lite_Booking::is_fully_booked($event_id);
+		}
+
+		$html = '<div class="clubcal-lite-booking" data-event-id="' . esc_attr($event_id) . '">';
+		$html .= '<hr style="margin: 20px 0; border: none; border-top: 1px solid #ddd;" />';
+		$html .= '<h4 class="clubcal-lite-booking__title">' . esc_html__('Book this event', 'clubcal-lite') . '</h4>';
+
+		// Show price and spots
+		if ($price || $spots_remaining !== null) {
+			$html .= '<p class="clubcal-lite-booking__meta">';
+			if ($price) {
+				$html .= '<span class="clubcal-lite-booking__price">' . esc_html__('Price:', 'clubcal-lite') . ' <strong>' . esc_html($price) . '</strong></span>';
+			}
+			if ($spots_remaining !== null) {
+				if ($price) {
+					$html .= ' &bull; ';
+				}
+				$spots_text = $is_fully_booked
+					? __('Fully booked', 'clubcal-lite')
+					: sprintf(__('%d spots left', 'clubcal-lite'), $spots_remaining);
+				$html .= '<span class="clubcal-lite-booking__spots' . ($is_fully_booked ? ' clubcal-lite-booking__spots--full' : '') . '">' . esc_html($spots_text) . '</span>';
+			}
+			$html .= '</p>';
+		}
+
+		if ($is_fully_booked) {
+			$html .= '<p class="clubcal-lite-booking__full">' . esc_html__('This event is fully booked. Please check back later or contact us.', 'clubcal-lite') . '</p>';
+		} else {
+			// Booking form
+			$html .= '<form class="clubcal-lite-booking__form" data-clubcal-booking-form>';
+			$html .= '<input type="hidden" name="event_id" value="' . esc_attr($event_id) . '" />';
+			
+			$html .= '<p class="clubcal-lite-booking__field">';
+			$html .= '<label for="clubcal_book_name">' . esc_html__('Name', 'clubcal-lite') . ' <span class="required">*</span></label>';
+			$html .= '<input type="text" id="clubcal_book_name" name="name" required />';
+			$html .= '</p>';
+
+			$html .= '<p class="clubcal-lite-booking__field">';
+			$html .= '<label for="clubcal_book_email">' . esc_html__('Email', 'clubcal-lite') . ' <span class="required">*</span></label>';
+			$html .= '<input type="email" id="clubcal_book_email" name="email" required />';
+			$html .= '</p>';
+
+			$html .= '<p class="clubcal-lite-booking__field">';
+			$html .= '<label for="clubcal_book_phone">' . esc_html__('Phone', 'clubcal-lite') . ' <span class="optional">(' . esc_html__('optional', 'clubcal-lite') . ')</span></label>';
+			$html .= '<input type="tel" id="clubcal_book_phone" name="phone" />';
+			$html .= '</p>';
+
+			$html .= '<p class="clubcal-lite-booking__submit">';
+			$html .= '<button type="submit" class="clubcal-lite-booking__button">' . esc_html__('Book now', 'clubcal-lite') . '</button>';
+			$html .= '</p>';
+
+			$html .= '<p class="clubcal-lite-booking__message" data-clubcal-booking-message style="display: none;"></p>';
+			$html .= '</form>';
+		}
+
+		$html .= '</div>';
+		return $html;
 	}
 }

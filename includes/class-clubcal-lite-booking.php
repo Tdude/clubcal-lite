@@ -1,0 +1,619 @@
+<?php
+/**
+ * Booking CPT and logic for ClubCal Lite
+ *
+ * @package ClubCal_Lite
+ */
+
+if (!defined('ABSPATH')) {
+	exit;
+}
+
+final class ClubCal_Lite_Booking {
+	public const POST_TYPE = 'club_booking';
+	public const AJAX_ACTION_BOOK = 'clubcal_lite_book';
+
+	public function register(): void {
+		add_action('init', [$this, 'register_booking_cpt']);
+		add_action('wp_ajax_' . self::AJAX_ACTION_BOOK, [$this, 'ajax_book']);
+		add_action('wp_ajax_nopriv_' . self::AJAX_ACTION_BOOK, [$this, 'ajax_book']);
+		
+		// Admin enhancements
+		add_action('add_meta_boxes', [$this, 'register_bookings_meta_box']);
+		add_filter('manage_' . ClubCal_Lite::POST_TYPE . '_posts_columns', [$this, 'add_bookings_column']);
+		add_action('manage_' . ClubCal_Lite::POST_TYPE . '_posts_custom_column', [$this, 'render_bookings_column'], 10, 2);
+		
+		// Booking CPT admin columns
+		add_filter('manage_' . self::POST_TYPE . '_posts_columns', [$this, 'booking_admin_columns']);
+		add_action('manage_' . self::POST_TYPE . '_posts_custom_column', [$this, 'render_booking_admin_column'], 10, 2);
+		add_action('add_meta_boxes', [$this, 'register_booking_details_meta_box']);
+		
+		// Admin actions for payment confirmation
+		add_action('admin_post_clubcal_confirm_payment', [$this, 'handle_confirm_payment']);
+	}
+
+	/**
+	 * Register the booking custom post type
+	 */
+	public function register_booking_cpt(): void {
+		$labels = [
+			'name'               => __('Bookings', 'clubcal-lite'),
+			'singular_name'      => __('Booking', 'clubcal-lite'),
+			'menu_name'          => __('Bookings', 'clubcal-lite'),
+			'add_new'            => __('Add New', 'clubcal-lite'),
+			'add_new_item'       => __('Add New Booking', 'clubcal-lite'),
+			'edit_item'          => __('Edit Booking', 'clubcal-lite'),
+			'view_item'          => __('View Booking', 'clubcal-lite'),
+			'all_items'          => __('All Bookings', 'clubcal-lite'),
+			'search_items'       => __('Search Bookings', 'clubcal-lite'),
+			'not_found'          => __('No bookings found.', 'clubcal-lite'),
+			'not_found_in_trash' => __('No bookings found in Trash.', 'clubcal-lite'),
+		];
+
+		$args = [
+			'labels'              => $labels,
+			'public'              => false,
+			'show_ui'             => true,
+			'show_in_menu'        => 'edit.php?post_type=' . ClubCal_Lite::POST_TYPE,
+			'show_in_rest'        => false,
+			'exclude_from_search' => true,
+			'publicly_queryable'  => false,
+			'capability_type'     => 'post',
+			'supports'            => ['title'],
+			'menu_icon'           => 'dashicons-tickets-alt',
+		];
+
+		register_post_type(self::POST_TYPE, $args);
+	}
+
+	/**
+	 * Get the number of confirmed bookings for an event
+	 */
+	public static function get_booking_count(int $event_id): int {
+		$args = [
+			'post_type'      => self::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'meta_query'     => [
+				[
+					'key'   => '_clubcal_booking_event_id',
+					'value' => $event_id,
+					'type'  => 'NUMERIC',
+				],
+				[
+					'key'   => '_clubcal_booking_status',
+					'value' => ['confirmed', 'pending'],
+					'compare' => 'IN',
+				],
+			],
+		];
+
+		$query = new WP_Query($args);
+		return $query->found_posts;
+	}
+
+	/**
+	 * Get spots remaining for an event
+	 */
+	public static function get_spots_remaining(int $event_id): ?int {
+		$max_spots = (int) get_post_meta($event_id, '_clubcal_max_spots', true);
+		if ($max_spots <= 0) {
+			return null; // Unlimited
+		}
+
+		$booked = self::get_booking_count($event_id);
+		return max(0, $max_spots - $booked);
+	}
+
+	/**
+	 * Check if an event is fully booked
+	 */
+	public static function is_fully_booked(int $event_id): bool {
+		$remaining = self::get_spots_remaining($event_id);
+		return $remaining !== null && $remaining <= 0;
+	}
+
+	/**
+	 * Generate a unique confirmation code
+	 */
+	private function generate_confirmation_code(): string {
+		return strtoupper(substr(md5(uniqid(wp_rand(), true)), 0, 8));
+	}
+
+	/**
+	 * Create a new booking
+	 */
+	public function create_booking(int $event_id, array $data): array {
+		// Validate event exists
+		$event = get_post($event_id);
+		if (!$event || $event->post_type !== ClubCal_Lite::POST_TYPE) {
+			return ['success' => false, 'error' => __('Event not found.', 'clubcal-lite')];
+		}
+
+		// Check if fully booked
+		if (self::is_fully_booked($event_id)) {
+			return ['success' => false, 'error' => __('This event is fully booked.', 'clubcal-lite')];
+		}
+
+		// Sanitize input
+		$name  = sanitize_text_field($data['name'] ?? '');
+		$email = sanitize_email($data['email'] ?? '');
+		$phone = sanitize_text_field($data['phone'] ?? '');
+
+		if (empty($name) || empty($email)) {
+			return ['success' => false, 'error' => __('Name and email are required.', 'clubcal-lite')];
+		}
+
+		if (!is_email($email)) {
+			return ['success' => false, 'error' => __('Please enter a valid email address.', 'clubcal-lite')];
+		}
+
+		// Check for duplicate booking (same email, same event)
+		$existing = get_posts([
+			'post_type'      => self::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => 1,
+			'meta_query'     => [
+				[
+					'key'   => '_clubcal_booking_event_id',
+					'value' => $event_id,
+					'type'  => 'NUMERIC',
+				],
+				[
+					'key'   => '_clubcal_booking_email',
+					'value' => $email,
+				],
+			],
+		]);
+
+		if (!empty($existing)) {
+			return ['success' => false, 'error' => __('You have already booked this event.', 'clubcal-lite')];
+		}
+
+		// Generate confirmation code
+		$confirmation_code = $this->generate_confirmation_code();
+
+		// Create booking post
+		$booking_title = sprintf('%s - %s', $name, get_the_title($event_id));
+		$booking_id = wp_insert_post([
+			'post_type'   => self::POST_TYPE,
+			'post_status' => 'publish',
+			'post_title'  => $booking_title,
+		]);
+
+		if (is_wp_error($booking_id)) {
+			return ['success' => false, 'error' => __('Could not create booking.', 'clubcal-lite')];
+		}
+
+		// Save booking meta
+		update_post_meta($booking_id, '_clubcal_booking_event_id', $event_id);
+		update_post_meta($booking_id, '_clubcal_booking_name', $name);
+		update_post_meta($booking_id, '_clubcal_booking_email', $email);
+		update_post_meta($booking_id, '_clubcal_booking_phone', $phone);
+		update_post_meta($booking_id, '_clubcal_booking_status', 'confirmed'); // or 'pending' if payment required
+		update_post_meta($booking_id, '_clubcal_booking_confirmation_code', $confirmation_code);
+		update_post_meta($booking_id, '_clubcal_booking_created', current_time('mysql'));
+
+		// Get event details for response
+		$event_title = get_the_title($event_id);
+		$event_start = get_post_meta($event_id, '_clubcal_start', true);
+		$event_location = get_post_meta($event_id, '_clubcal_location', true);
+
+		// Get payment settings
+		$payment_info = null;
+		if (class_exists('ClubCal_Lite_Payment')) {
+			$payment_settings = get_option(ClubCal_Lite_Payment::OPTION_KEY, []);
+			$price = get_post_meta($event_id, '_clubcal_price', true);
+			
+			if (!empty($payment_settings['enabled']) && $price) {
+				// Extract numeric amount from price string (e.g., "150 kr" -> "150")
+				$amount = preg_replace('/[^0-9.]/', '', $price);
+				
+				if ($payment_settings['payment_method'] === 'swish' && $amount > 0) {
+					$swish_data = ClubCal_Lite_Payment::generate_swish_payment(
+						$booking_id,
+						$amount,
+						sprintf(__('Booking %s', 'clubcal-lite'), $event_title)
+					);
+					
+					if (empty($swish_data['error'])) {
+						$payment_info = [
+							'method'       => 'swish',
+							'amount'       => $amount,
+							'currency'     => 'SEK',
+							'swish_number' => $swish_data['swish_number'],
+							'reference'    => $swish_data['reference'],
+							'message'      => $swish_data['message'],
+						];
+
+						// Log pending payment
+						ClubCal_Lite_Payment::log_payment([
+							'booking_id' => $booking_id,
+							'event_id'   => $event_id,
+							'amount'     => $amount,
+							'currency'   => 'SEK',
+							'method'     => 'swish',
+							'status'     => 'pending',
+							'reference'  => $swish_data['reference'],
+							'email'      => $email,
+							'name'       => $name,
+							'notes'      => 'Awaiting Swish payment',
+						]);
+
+						// Update booking status if payment required
+						if (!empty($payment_settings['require_payment'])) {
+							update_post_meta($booking_id, '_clubcal_booking_status', 'pending_payment');
+						}
+					}
+				} elseif ($payment_settings['payment_method'] === 'manual') {
+					$payment_info = [
+						'method'  => 'manual',
+						'amount'  => $price,
+						'message' => __('Pay at the venue', 'clubcal-lite'),
+					];
+				}
+			}
+		}
+
+		$result = [
+			'success'           => true,
+			'booking_id'        => $booking_id,
+			'confirmation_code' => $confirmation_code,
+			'event_title'       => $event_title,
+			'event_start'       => $event_start,
+			'event_location'    => $event_location,
+			'name'              => $name,
+			'email'             => $email,
+		];
+
+		if ($payment_info) {
+			$result['payment'] = $payment_info;
+		}
+
+		// Fire action for other integrations (e.g., Mailchimp)
+		do_action('clubcal_lite_booking_created', $booking_id, $result);
+
+		return $result;
+	}
+
+	/**
+	 * AJAX handler for booking
+	 */
+	public function ajax_book(): void {
+		// Verify nonce
+		if (!check_ajax_referer('clubcal_lite_book', '_ajax_nonce', false)) {
+			wp_send_json_error(__('Security check failed.', 'clubcal-lite'), 403);
+		}
+
+		$event_id = isset($_POST['event_id']) ? absint($_POST['event_id']) : 0;
+		if ($event_id <= 0) {
+			wp_send_json_error(__('Invalid event.', 'clubcal-lite'), 400);
+		}
+
+		$result = $this->create_booking($event_id, [
+			'name'  => $_POST['name'] ?? '',
+			'email' => $_POST['email'] ?? '',
+			'phone' => $_POST['phone'] ?? '',
+		]);
+
+		if ($result['success']) {
+			wp_send_json_success($result);
+		} else {
+			wp_send_json_error($result['error'], 400);
+		}
+	}
+
+	/**
+	 * Get all bookings for an event
+	 */
+	public static function get_event_bookings(int $event_id): array {
+		$args = [
+			'post_type'      => self::POST_TYPE,
+			'post_status'    => 'publish',
+			'posts_per_page' => -1,
+			'orderby'        => 'date',
+			'order'          => 'ASC',
+			'meta_query'     => [
+				[
+					'key'   => '_clubcal_booking_event_id',
+					'value' => $event_id,
+					'type'  => 'NUMERIC',
+				],
+			],
+		];
+
+		$query = new WP_Query($args);
+		$bookings = [];
+
+		foreach ($query->posts as $post) {
+			$bookings[] = [
+				'id'                => $post->ID,
+				'name'              => get_post_meta($post->ID, '_clubcal_booking_name', true),
+				'email'             => get_post_meta($post->ID, '_clubcal_booking_email', true),
+				'phone'             => get_post_meta($post->ID, '_clubcal_booking_phone', true),
+				'status'            => get_post_meta($post->ID, '_clubcal_booking_status', true),
+				'confirmation_code' => get_post_meta($post->ID, '_clubcal_booking_confirmation_code', true),
+				'created'           => get_post_meta($post->ID, '_clubcal_booking_created', true),
+			];
+		}
+
+		return $bookings;
+	}
+
+	/**
+	 * Register bookings meta box on event edit screen
+	 */
+	public function register_bookings_meta_box(): void {
+		add_meta_box(
+			'clubcal_lite_event_bookings',
+			__('Bookings', 'clubcal-lite'),
+			[$this, 'render_bookings_meta_box'],
+			ClubCal_Lite::POST_TYPE,
+			'normal',
+			'default'
+		);
+	}
+
+	/**
+	 * Render bookings meta box
+	 */
+	public function render_bookings_meta_box(\WP_Post $post): void {
+		$bookings = self::get_event_bookings($post->ID);
+		$booking_count = count($bookings);
+		$max_spots = (int) get_post_meta($post->ID, '_clubcal_max_spots', true);
+
+		if (empty($bookings)) {
+			echo '<p>' . esc_html__('No bookings yet.', 'clubcal-lite') . '</p>';
+			return;
+		}
+
+		echo '<p><strong>' . sprintf(
+			esc_html__('%d booking(s)', 'clubcal-lite'),
+			$booking_count
+		);
+		if ($max_spots > 0) {
+			echo ' / ' . esc_html($max_spots) . ' ' . esc_html__('spots', 'clubcal-lite');
+		}
+		echo '</strong></p>';
+
+		echo '<table class="widefat striped" style="margin-top: 10px;">';
+		echo '<thead><tr>';
+		echo '<th>' . esc_html__('Name', 'clubcal-lite') . '</th>';
+		echo '<th>' . esc_html__('Email', 'clubcal-lite') . '</th>';
+		echo '<th>' . esc_html__('Phone', 'clubcal-lite') . '</th>';
+		echo '<th>' . esc_html__('Code', 'clubcal-lite') . '</th>';
+		echo '<th>' . esc_html__('Status', 'clubcal-lite') . '</th>';
+		echo '<th>' . esc_html__('Booked', 'clubcal-lite') . '</th>';
+		echo '</tr></thead>';
+		echo '<tbody>';
+
+		foreach ($bookings as $booking) {
+			echo '<tr>';
+			echo '<td>' . esc_html($booking['name']) . '</td>';
+			echo '<td><a href="mailto:' . esc_attr($booking['email']) . '">' . esc_html($booking['email']) . '</a></td>';
+			echo '<td>' . esc_html($booking['phone'] ?: '—') . '</td>';
+			echo '<td><code>' . esc_html($booking['confirmation_code']) . '</code></td>';
+			echo '<td>' . esc_html(ucfirst($booking['status'])) . '</td>';
+			echo '<td>' . esc_html($booking['created'] ? wp_date('Y-m-d H:i', strtotime($booking['created'])) : '—') . '</td>';
+			echo '</tr>';
+		}
+
+		echo '</tbody></table>';
+	}
+
+	/**
+	 * Add bookings column to events list
+	 */
+	public function add_bookings_column(array $columns): array {
+		$new_columns = [];
+		foreach ($columns as $key => $value) {
+			$new_columns[$key] = $value;
+			if ($key === 'title') {
+				$new_columns['bookings'] = __('Bookings', 'clubcal-lite');
+			}
+		}
+		return $new_columns;
+	}
+
+	/**
+	 * Render bookings column
+	 */
+	public function render_bookings_column(string $column, int $post_id): void {
+		if ($column !== 'bookings') {
+			return;
+		}
+
+		$booking_enabled = get_post_meta($post_id, '_clubcal_booking_enabled', true) === '1';
+		if (!$booking_enabled) {
+			echo '<span style="color: #999;">—</span>';
+			return;
+		}
+
+		$count = self::get_booking_count($post_id);
+		$max_spots = (int) get_post_meta($post_id, '_clubcal_max_spots', true);
+
+		if ($max_spots > 0) {
+			$remaining = max(0, $max_spots - $count);
+			$color = $remaining > 0 ? '#2e7d32' : '#c62828';
+			echo '<span style="color: ' . esc_attr($color) . '; font-weight: 500;">' . esc_html($count) . '/' . esc_html($max_spots) . '</span>';
+		} else {
+			echo '<span>' . esc_html($count) . '</span>';
+		}
+	}
+
+	/**
+	 * Booking CPT admin columns
+	 */
+	public function booking_admin_columns(array $columns): array {
+		return [
+			'cb'         => $columns['cb'],
+			'title'      => __('Booking', 'clubcal-lite'),
+			'event'      => __('Event', 'clubcal-lite'),
+			'email'      => __('Email', 'clubcal-lite'),
+			'phone'      => __('Phone', 'clubcal-lite'),
+			'code'       => __('Code', 'clubcal-lite'),
+			'status'     => __('Status', 'clubcal-lite'),
+			'date'       => __('Date', 'clubcal-lite'),
+		];
+	}
+
+	/**
+	 * Render booking admin column
+	 */
+	public function render_booking_admin_column(string $column, int $post_id): void {
+		switch ($column) {
+			case 'event':
+				$event_id = (int) get_post_meta($post_id, '_clubcal_booking_event_id', true);
+				if ($event_id > 0) {
+					$event = get_post($event_id);
+					if ($event) {
+						echo '<a href="' . esc_url(get_edit_post_link($event_id)) . '">' . esc_html(get_the_title($event_id)) . '</a>';
+					} else {
+						echo '<span style="color: #999;">' . esc_html__('Deleted', 'clubcal-lite') . '</span>';
+					}
+				}
+				break;
+			case 'email':
+				$email = get_post_meta($post_id, '_clubcal_booking_email', true);
+				echo '<a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>';
+				break;
+			case 'phone':
+				$phone = get_post_meta($post_id, '_clubcal_booking_phone', true);
+				echo esc_html($phone ?: '—');
+				break;
+			case 'code':
+				$code = get_post_meta($post_id, '_clubcal_booking_confirmation_code', true);
+				echo '<code>' . esc_html($code) . '</code>';
+				break;
+			case 'status':
+				$status = get_post_meta($post_id, '_clubcal_booking_status', true);
+				$color = $status === 'confirmed' ? '#2e7d32' : '#ff9800';
+				echo '<span style="color: ' . esc_attr($color) . ';">' . esc_html(ucfirst($status)) . '</span>';
+				break;
+		}
+	}
+
+	/**
+	 * Register booking details meta box
+	 */
+	public function register_booking_details_meta_box(): void {
+		add_meta_box(
+			'clubcal_lite_booking_details',
+			__('Booking Details', 'clubcal-lite'),
+			[$this, 'render_booking_details_meta_box'],
+			self::POST_TYPE,
+			'normal',
+			'high'
+		);
+	}
+
+	/**
+	 * Render booking details meta box
+	 */
+	public function render_booking_details_meta_box(\WP_Post $post): void {
+		$event_id = (int) get_post_meta($post->ID, '_clubcal_booking_event_id', true);
+		$name = get_post_meta($post->ID, '_clubcal_booking_name', true);
+		$email = get_post_meta($post->ID, '_clubcal_booking_email', true);
+		$phone = get_post_meta($post->ID, '_clubcal_booking_phone', true);
+		$status = get_post_meta($post->ID, '_clubcal_booking_status', true);
+		$code = get_post_meta($post->ID, '_clubcal_booking_confirmation_code', true);
+		$created = get_post_meta($post->ID, '_clubcal_booking_created', true);
+
+		echo '<table class="form-table">';
+		
+		echo '<tr><th>' . esc_html__('Event', 'clubcal-lite') . '</th><td>';
+		if ($event_id > 0) {
+			$event = get_post($event_id);
+			if ($event) {
+				echo '<a href="' . esc_url(get_edit_post_link($event_id)) . '">' . esc_html(get_the_title($event_id)) . '</a>';
+				$event_start = get_post_meta($event_id, '_clubcal_start', true);
+				if ($event_start) {
+					echo '<br><small>' . esc_html(wp_date('Y-m-d H:i', strtotime($event_start))) . '</small>';
+				}
+			} else {
+				echo '<span style="color: #c62828;">' . esc_html__('Event deleted', 'clubcal-lite') . '</span>';
+			}
+		}
+		echo '</td></tr>';
+
+		echo '<tr><th>' . esc_html__('Name', 'clubcal-lite') . '</th><td>' . esc_html($name) . '</td></tr>';
+		echo '<tr><th>' . esc_html__('Email', 'clubcal-lite') . '</th><td><a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a></td></tr>';
+		echo '<tr><th>' . esc_html__('Phone', 'clubcal-lite') . '</th><td>' . esc_html($phone ?: '—') . '</td></tr>';
+		echo '<tr><th>' . esc_html__('Confirmation Code', 'clubcal-lite') . '</th><td><code style="font-size: 1.1em;">' . esc_html($code) . '</code></td></tr>';
+		echo '<tr><th>' . esc_html__('Status', 'clubcal-lite') . '</th><td><strong>' . esc_html(ucfirst(str_replace('_', ' ', $status))) . '</strong></td></tr>';
+		echo '<tr><th>' . esc_html__('Booked at', 'clubcal-lite') . '</th><td>' . esc_html($created ? wp_date('Y-m-d H:i:s', strtotime($created)) : '—') . '</td></tr>';
+
+		// Show payment info if exists
+		if (class_exists('ClubCal_Lite_Payment')) {
+			$payment = ClubCal_Lite_Payment::get_booking_payment($post->ID);
+			if ($payment) {
+				$payment_status_colors = [
+					'pending'   => '#ff9800',
+					'completed' => '#2e7d32',
+					'failed'    => '#c62828',
+				];
+				$payment_color = $payment_status_colors[$payment['status']] ?? '#666';
+				
+				echo '<tr><th>' . esc_html__('Payment', 'clubcal-lite') . '</th><td>';
+				echo '<span style="color: ' . esc_attr($payment_color) . '; font-weight: 500;">' . esc_html(ucfirst($payment['status'])) . '</span>';
+				echo ' — ' . esc_html($payment['amount']) . ' ' . esc_html($payment['currency']);
+				echo ' (' . esc_html(ucfirst($payment['method'])) . ')';
+				
+				// Show confirm payment button if pending
+				if ($payment['status'] === 'pending') {
+					$confirm_url = wp_nonce_url(
+						admin_url('admin-post.php?action=clubcal_confirm_payment&booking_id=' . $post->ID),
+						'clubcal_confirm_payment_' . $post->ID
+					);
+					echo '<br><a href="' . esc_url($confirm_url) . '" class="button button-small" style="margin-top: 8px;" onclick="return confirm(\'' . esc_js(__('Confirm this payment as received?', 'clubcal-lite')) . '\');">';
+					echo esc_html__('✓ Confirm Payment Received', 'clubcal-lite');
+					echo '</a>';
+				}
+				
+				echo '</td></tr>';
+			}
+		}
+
+		echo '</table>';
+	}
+
+	/**
+	 * Handle payment confirmation from admin
+	 */
+	public function handle_confirm_payment(): void {
+		$booking_id = isset($_GET['booking_id']) ? absint($_GET['booking_id']) : 0;
+		
+		if (!$booking_id || !current_user_can('edit_posts')) {
+			wp_die(__('Unauthorized', 'clubcal-lite'));
+		}
+
+		check_admin_referer('clubcal_confirm_payment_' . $booking_id);
+
+		// Update payment status
+		if (class_exists('ClubCal_Lite_Payment')) {
+			$payment = ClubCal_Lite_Payment::get_booking_payment($booking_id);
+			if ($payment) {
+				ClubCal_Lite_Payment::update_payment_status(
+					$payment['id'],
+					'completed',
+					sprintf(__('Payment confirmed manually by %s', 'clubcal-lite'), wp_get_current_user()->display_name)
+				);
+			}
+		}
+
+		// Update booking status
+		$current_status = get_post_meta($booking_id, '_clubcal_booking_status', true);
+		if ($current_status === 'pending_payment') {
+			update_post_meta($booking_id, '_clubcal_booking_status', 'confirmed');
+			
+			// Fire action for email confirmation
+			do_action('clubcal_lite_payment_completed', $booking_id, [
+				'status' => 'completed',
+			]);
+		}
+
+		// Redirect back
+		wp_redirect(get_edit_post_link($booking_id, 'raw'));
+		exit;
+	}
+}

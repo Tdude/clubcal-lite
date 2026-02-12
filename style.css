@@ -728,3 +728,208 @@ body.is-dark .clubcal-lite-list__link a,
 		transition: none;
 	}
 }
+
+/* ===========================
+   Booking Form Styles
+   =========================== */
+
+.clubcal-lite-booking {
+	margin-top: 1rem;
+}
+
+.clubcal-lite-booking__title {
+	margin: 0 0 0.75rem 0;
+	font-size: 1.125rem;
+	font-weight: 600;
+}
+
+.clubcal-lite-booking__meta {
+	margin: 0 0 1rem 0;
+	font-size: 0.9375rem;
+	color: #555;
+}
+
+.clubcal-lite-booking__price {
+	color: #222;
+}
+
+.clubcal-lite-booking__spots {
+	color: #2e7d32;
+}
+
+.clubcal-lite-booking__spots--full {
+	color: #c62828;
+	font-weight: 600;
+}
+
+.clubcal-lite-booking__full {
+	padding: 1rem;
+	background: #fff3e0;
+	border-radius: 6px;
+	color: #e65100;
+	font-weight: 500;
+}
+
+.clubcal-lite-booking__form {
+	display: flex;
+	flex-direction: column;
+	gap: 0.75rem;
+}
+
+.clubcal-lite-booking__field {
+	margin: 0;
+}
+
+.clubcal-lite-booking__field label {
+	display: block;
+	margin-bottom: 0.25rem;
+	font-weight: 500;
+	font-size: 0.9375rem;
+}
+
+.clubcal-lite-booking__field label .required {
+	color: #c62828;
+}
+
+.clubcal-lite-booking__field label .optional {
+	font-weight: 400;
+	color: #888;
+	font-size: 0.875rem;
+}
+
+.clubcal-lite-booking__field input {
+	width: 100%;
+	padding: 0.625rem 0.75rem;
+	font-size: 1rem;
+	border: 1px solid #ccc;
+	border-radius: 6px;
+	transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.clubcal-lite-booking__field input:focus {
+	outline: none;
+	border-color: var(--clubcal-accent, #3788d8);
+	box-shadow: 0 0 0 3px rgba(55, 136, 216, 0.15);
+}
+
+.clubcal-lite-booking__submit {
+	margin: 0.5rem 0 0 0;
+}
+
+.clubcal-lite-booking__button {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0.75rem 1.5rem;
+	font-size: 1rem;
+	font-weight: 600;
+	color: #fff;
+	background: var(--clubcal-accent, #3788d8);
+	border: none;
+	border-radius: 6px;
+	cursor: pointer;
+	transition: background-color 150ms ease, transform 100ms ease;
+}
+
+.clubcal-lite-booking__button:hover:not(:disabled) {
+	background: #2a6bb5;
+}
+
+.clubcal-lite-booking__button:active:not(:disabled) {
+	transform: scale(0.98);
+}
+
+.clubcal-lite-booking__button:disabled {
+	opacity: 0.7;
+	cursor: not-allowed;
+}
+
+.clubcal-lite-booking__message {
+	padding: 1rem;
+	border-radius: 6px;
+	font-size: 0.9375rem;
+	line-height: 1.5;
+}
+
+.clubcal-lite-booking__message--success {
+	background: #e8f5e9;
+	color: #1b5e20;
+	border: 1px solid #a5d6a7;
+}
+
+.clubcal-lite-booking__message--error {
+	background: #ffebee;
+	color: #b71c1c;
+	border: 1px solid #ef9a9a;
+}
+
+/* Dark mode for booking form */
+@media (prefers-color-scheme: dark) {
+	.clubcal-lite-booking__meta {
+		color: var(--clubcal-muted, #aaa);
+	}
+
+	.clubcal-lite-booking__price {
+		color: var(--clubcal-text, #e6eaf2);
+	}
+
+	.clubcal-lite-booking__spots {
+		color: #81c784;
+	}
+
+	.clubcal-lite-booking__spots--full {
+		color: #ef5350;
+	}
+
+	.clubcal-lite-booking__full {
+		background: rgba(230, 81, 0, 0.15);
+		color: #ffb74d;
+	}
+
+	.clubcal-lite-booking__field label {
+		color: var(--clubcal-text, #e6eaf2);
+	}
+
+	.clubcal-lite-booking__field label .optional {
+		color: var(--clubcal-muted, #aaa);
+	}
+
+	.clubcal-lite-booking__field input {
+		background: var(--clubcal-bg, #0f1115);
+		border-color: var(--clubcal-border, rgba(230, 234, 242, 0.12));
+		color: var(--clubcal-text, #e6eaf2);
+	}
+
+	.clubcal-lite-booking__field input:focus {
+		border-color: var(--clubcal-accent, #4da3ff);
+		box-shadow: 0 0 0 3px rgba(77, 163, 255, 0.2);
+	}
+
+	.clubcal-lite-booking__button {
+		background: var(--clubcal-accent, #4da3ff);
+		color: #0b0d10;
+	}
+
+	.clubcal-lite-booking__button:hover:not(:disabled) {
+		background: #7ab8ff;
+	}
+
+	.clubcal-lite-booking__message--success {
+		background: rgba(27, 94, 32, 0.2);
+		color: #81c784;
+		border-color: rgba(129, 199, 132, 0.3);
+	}
+
+	.clubcal-lite-booking__message--error {
+		background: rgba(183, 28, 28, 0.2);
+		color: #ef5350;
+		border-color: rgba(239, 83, 80, 0.3);
+	}
+}
+
+/* Mobile responsive for booking */
+@media (max-width: 640px) {
+	.clubcal-lite-booking__button {
+		width: 100%;
+	}
+}

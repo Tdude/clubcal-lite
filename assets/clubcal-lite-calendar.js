@@ -307,6 +307,107 @@
         closeModal();
       }
     });
+
+    // Handle booking form submission (delegated)
+    modal.addEventListener('submit', function (e) {
+      var form = e.target.closest('[data-clubcal-booking-form]');
+      if (!form) {
+        return;
+      }
+      e.preventDefault();
+      handleBookingSubmit(form);
+    });
+  }
+
+  function handleBookingSubmit(form) {
+    if (!window.ClubCalLite) {
+      return;
+    }
+
+    var submitBtn = qs('button[type="submit"]', form);
+    var messageEl = qs('[data-clubcal-booking-message]', form.parentNode);
+    
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = window.ClubCalLite.i18n.booking || 'Booking...';
+    }
+
+    if (messageEl) {
+      messageEl.style.display = 'none';
+      messageEl.className = 'clubcal-lite-booking__message';
+      messageEl.textContent = '';
+    }
+
+    var formData = new FormData(form);
+    formData.append('action', window.ClubCalLite.actionBook);
+    formData.append('_ajax_nonce', window.ClubCalLite.nonceBook);
+
+    fetch(window.ClubCalLite.ajaxUrl, {
+      method: 'POST',
+      credentials: 'same-origin',
+      body: formData
+    })
+      .then(function (r) {
+        return r.json();
+      })
+      .then(function (data) {
+        if (data && data.success) {
+          // Success
+          form.style.display = 'none';
+          if (messageEl) {
+            messageEl.className = 'clubcal-lite-booking__message clubcal-lite-booking__message--success';
+            
+            var html = '<strong>' + (window.ClubCalLite.i18n.booked || 'Booked!') + '</strong><br>' +
+              (window.ClubCalLite.i18n.bookingSuccess || 'Your booking is confirmed! Confirmation code:') + 
+              ' <strong>' + (data.data.confirmation_code || '') + '</strong>';
+            
+            // Show payment info if present
+            if (data.data.payment) {
+              var p = data.data.payment;
+              html += '<div class="clubcal-lite-payment-info" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">';
+              
+              if (p.method === 'swish') {
+                html += '<strong>' + (window.ClubCalLite.i18n.payWithSwish || 'Pay with Swish:') + '</strong><br>';
+                html += '<div style="font-size: 1.25em; margin: 8px 0;">';
+                html += '<strong>' + p.swish_number + '</strong><br>';
+                html += p.amount + ' ' + (p.currency || 'SEK');
+                html += '</div>';
+                html += '<small>' + (window.ClubCalLite.i18n.swishMessage || 'Message:') + ' <code>' + p.reference + '</code></small>';
+              } else if (p.method === 'manual') {
+                html += '<strong>' + p.message + '</strong><br>';
+                html += (window.ClubCalLite.i18n.amount || 'Amount:') + ' ' + p.amount;
+              }
+              
+              html += '</div>';
+            }
+            
+            messageEl.innerHTML = html;
+            messageEl.style.display = 'block';
+          }
+        } else {
+          // Error
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Book now';
+          }
+          if (messageEl) {
+            messageEl.className = 'clubcal-lite-booking__message clubcal-lite-booking__message--error';
+            messageEl.textContent = (data && data.data) ? data.data : (window.ClubCalLite.i18n.bookingError || 'Booking failed.');
+            messageEl.style.display = 'block';
+          }
+        }
+      })
+      .catch(function () {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Book now';
+        }
+        if (messageEl) {
+          messageEl.className = 'clubcal-lite-booking__message clubcal-lite-booking__message--error';
+          messageEl.textContent = window.ClubCalLite.i18n.bookingError || 'Booking failed.';
+          messageEl.style.display = 'block';
+        }
+      });
   }
 
   function ensureSvLocale() {

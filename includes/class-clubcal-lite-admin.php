@@ -195,6 +195,44 @@ final class ClubCal_Lite_Admin {
 		echo '<label for="clubcal_lite_location"><strong>' . esc_html__('Location', 'clubcal-lite') . '</strong></label><br />';
 		echo '<input type="text" id="clubcal_lite_location" name="clubcal_lite_location" value="' . esc_attr((string) $location) . '" style="width: 100%;" />';
 		echo '</p>';
+
+		// Booking fields
+		$max_spots = get_post_meta($post->ID, '_clubcal_max_spots', true);
+		$price = get_post_meta($post->ID, '_clubcal_price', true);
+		$booking_enabled = get_post_meta($post->ID, '_clubcal_booking_enabled', true);
+
+		echo '<hr style="margin: 20px 0;" />';
+		echo '<h4 style="margin-bottom: 10px;">' . esc_html__('Booking Settings', 'clubcal-lite') . '</h4>';
+
+		echo '<p>';
+		echo '<label for="clubcal_lite_booking_enabled">';
+		echo '<input type="checkbox" id="clubcal_lite_booking_enabled" name="clubcal_lite_booking_enabled" value="1" ' . checked($booking_enabled, '1', false) . ' /> ';
+		echo esc_html__('Enable booking for this event', 'clubcal-lite');
+		echo '</label>';
+		echo '</p>';
+
+		echo '<p>';
+		echo '<label for="clubcal_lite_max_spots"><strong>' . esc_html__('Max spots', 'clubcal-lite') . '</strong> <span style="font-weight: normal; color: #666;">(' . esc_html__('0 = unlimited', 'clubcal-lite') . ')</span></label><br />';
+		echo '<input type="number" id="clubcal_lite_max_spots" name="clubcal_lite_max_spots" value="' . esc_attr((string) $max_spots) . '" min="0" style="width: 100px;" />';
+		echo '</p>';
+
+		echo '<p>';
+		echo '<label for="clubcal_lite_price"><strong>' . esc_html__('Price', 'clubcal-lite') . '</strong> <span style="font-weight: normal; color: #666;">(' . esc_html__('e.g. 150 kr', 'clubcal-lite') . ')</span></label><br />';
+		echo '<input type="text" id="clubcal_lite_price" name="clubcal_lite_price" value="' . esc_attr((string) $price) . '" style="width: 150px;" />';
+		echo '</p>';
+
+		// Show current bookings count
+		if (class_exists('ClubCal_Lite_Booking') && $post->post_status !== 'auto-draft') {
+			$booking_count = ClubCal_Lite_Booking::get_booking_count($post->ID);
+			$spots_remaining = ClubCal_Lite_Booking::get_spots_remaining($post->ID);
+			
+			echo '<p style="background: #f0f0f1; padding: 10px; border-radius: 4px;">';
+			echo '<strong>' . esc_html__('Current bookings:', 'clubcal-lite') . '</strong> ' . esc_html($booking_count);
+			if ($spots_remaining !== null) {
+				echo ' / ' . esc_html($max_spots) . ' (' . esc_html($spots_remaining) . ' ' . esc_html__('spots left', 'clubcal-lite') . ')';
+			}
+			echo '</p>';
+		}
 	}
 
 	public function save_meta_boxes(int $post_id): void {
@@ -240,6 +278,20 @@ final class ClubCal_Lite_Admin {
 			update_post_meta($post_id, '_clubcal_location', $location);
 		} else {
 			delete_post_meta($post_id, '_clubcal_location');
+		}
+
+		// Save booking fields
+		$booking_enabled = isset($_POST['clubcal_lite_booking_enabled']) ? '1' : '0';
+		$max_spots = isset($_POST['clubcal_lite_max_spots']) ? absint($_POST['clubcal_lite_max_spots']) : 0;
+		$price = isset($_POST['clubcal_lite_price']) ? sanitize_text_field(wp_unslash($_POST['clubcal_lite_price'])) : '';
+
+		update_post_meta($post_id, '_clubcal_booking_enabled', $booking_enabled);
+		update_post_meta($post_id, '_clubcal_max_spots', $max_spots);
+
+		if ($price !== '') {
+			update_post_meta($post_id, '_clubcal_price', $price);
+		} else {
+			delete_post_meta($post_id, '_clubcal_price');
 		}
 	}
 }

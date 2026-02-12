@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 1.1
+ * Version: 1.3
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -17,14 +17,18 @@ require_once __DIR__ . '/includes/class-clubcal-lite-cpt.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-admin.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-shortcodes.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-ajax.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-booking.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-payment.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-mailchimp.php';
 
 final class ClubCal_Lite {
-	public const VERSION = '1.1';
+	public const VERSION = '1.3';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
 	public const AJAX_ACTION_EVENTS = 'clubcal_lite_events';
 	public const AJAX_ACTION_EVENT_DETAILS = 'clubcal_lite_event_details';
+	public const AJAX_ACTION_BOOK = 'clubcal_lite_book';
 
 	private string $plugin_file;
 	private ClubCal_Lite_Cpt $cpt;
@@ -32,6 +36,9 @@ final class ClubCal_Lite {
 	private ClubCal_Lite_Admin $admin;
 	private ClubCal_Lite_Shortcodes $shortcodes;
 	private ClubCal_Lite_Ajax $ajax;
+	private ClubCal_Lite_Booking $booking;
+	private ClubCal_Lite_Payment $payment;
+	private ClubCal_Lite_Mailchimp $mailchimp;
 
 	public function __construct(string $plugin_file) {
 		$this->plugin_file = $plugin_file;
@@ -42,6 +49,9 @@ final class ClubCal_Lite {
 		$this->admin = new ClubCal_Lite_Admin($utils);
 		$this->shortcodes = new ClubCal_Lite_Shortcodes($this->assets, $utils);
 		$this->ajax = new ClubCal_Lite_Ajax($utils);
+		$this->booking = new ClubCal_Lite_Booking();
+		$this->payment = new ClubCal_Lite_Payment();
+		$this->mailchimp = new ClubCal_Lite_Mailchimp();
 	}
 
 	public function plugin_file(): string {
@@ -55,6 +65,9 @@ final class ClubCal_Lite {
 		$this->shortcodes->register();
 		$this->ajax->register();
 		$this->assets->register();
+		$this->booking->register();
+		$this->payment->register();
+		$this->mailchimp->register();
 	}
 
 	public function load_textdomain(): void {
