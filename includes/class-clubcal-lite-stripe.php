@@ -155,20 +155,23 @@ class ClubCal_Lite_Stripe {
         ), $return_url );
 
         $session_data = array(
-            'payment_method_types[]' => 'card',
-            'mode'                   => 'payment',
-            'success_url'            => $success_url,
-            'cancel_url'             => $cancel_url,
-            'client_reference_id'    => $booking_id,
-            'customer_email'         => $customer_email,
-            'line_items[0][price_data][currency]'     => 'sek',
-            'line_items[0][price_data][unit_amount]'  => $amount_in_ore,
+            'payment_method_types[]'              => 'card',
+            'mode'                                => 'payment',
+            'success_url'                         => $success_url,
+            'cancel_url'                          => $cancel_url,
+            'client_reference_id'                 => $booking_id,
+            'customer_email'                      => $customer_email,
+            'line_items[0][price_data][currency]' => 'sek',
+            'line_items[0][price_data][unit_amount]' => $amount_in_ore,
             'line_items[0][price_data][product_data][name]' => $product_name,
-            'line_items[0][quantity]' => 1,
-            'metadata[booking_id]'    => $booking_id,
-            'metadata[event_id]'      => $event_id,
-            'metadata[customer_name]' => $customer_name,
-            'locale'                  => 'sv',
+            'line_items[0][quantity]'             => 1,
+            'metadata[booking_id]'                => $booking_id,
+            'metadata[event_id]'                  => $event_id,
+            'metadata[customer_name]'             => $customer_name,
+            'locale'                              => 'sv',
+            // Disable slow features
+            'payment_method_options[card][setup_future_usage]' => '',
+            'allow_promotion_codes'               => 'false',
         );
 
         $response = self::api_request( '/checkout/sessions', $session_data );
