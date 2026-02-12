@@ -122,6 +122,16 @@ final class ClubCal_Lite_Assets {
 					'payWithSwish' => __('Pay with Swish:', 'clubcal-lite'),
 					'swishMessage' => __('Message:', 'clubcal-lite'),
 					'amount' => __('Amount:', 'clubcal-lite'),
+					'openSwish' => __('Open Swish', 'clubcal-lite'),
+					'scanQR' => __('Scan the QR code with the Swish app:', 'clubcal-lite'),
+					'orPayManually' => __('Or pay manually to:', 'clubcal-lite'),
+					'payToNumber' => __('Pay to:', 'clubcal-lite'),
+					'awaitingPayment' => __('Awaiting payment...', 'clubcal-lite'),
+					'paymentConfirmed' => __('Payment confirmed!', 'clubcal-lite'),
+					'paymentFailed' => __('Payment failed', 'clubcal-lite'),
+					'paymentTimeout' => __('Payment could not be confirmed. Contact us if you have paid.', 'clubcal-lite'),
+					'redirectingToPayment' => __('Redirecting to payment...', 'clubcal-lite'),
+					'proceedToPayment' => __('Proceed to Payment', 'clubcal-lite'),
 				],
 			]
 		);

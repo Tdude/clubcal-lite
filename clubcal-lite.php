@@ -2,7 +2,7 @@
 /**
  * Plugin Name: ClubCal Lite
  * Description: Lightweight club calendar using a custom post type. Xtremely lightweight, 200kb including FullCalendar with AJAX events loading, modal event details and minimal styling.
- * Version: 1.3
+ * Version: 1.8
  * Author: Tibor Berki <https://github.com/Tdude>
  * Text Domain: clubcal-lite
  */
@@ -20,9 +20,12 @@ require_once __DIR__ . '/includes/class-clubcal-lite-ajax.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-booking.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-payment.php';
 require_once __DIR__ . '/includes/class-clubcal-lite-mailchimp.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-swish.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-klarna.php';
+require_once __DIR__ . '/includes/class-clubcal-lite-stripe.php';
 
 final class ClubCal_Lite {
-	public const VERSION = '1.3';
+	public const VERSION = '1.8';
 	public const POST_TYPE = 'club_event';
 	public const TAX_CATEGORY = 'event_category';
 	public const TAX_TAG = 'event_tag';
@@ -39,6 +42,9 @@ final class ClubCal_Lite {
 	private ClubCal_Lite_Booking $booking;
 	private ClubCal_Lite_Payment $payment;
 	private ClubCal_Lite_Mailchimp $mailchimp;
+	private ClubCal_Lite_Swish $swish;
+	private ClubCal_Lite_Klarna $klarna;
+	private ClubCal_Lite_Stripe $stripe;
 
 	public function __construct(string $plugin_file) {
 		$this->plugin_file = $plugin_file;
@@ -52,6 +58,9 @@ final class ClubCal_Lite {
 		$this->booking = new ClubCal_Lite_Booking();
 		$this->payment = new ClubCal_Lite_Payment();
 		$this->mailchimp = new ClubCal_Lite_Mailchimp();
+		$this->swish = new ClubCal_Lite_Swish();
+		$this->klarna = new ClubCal_Lite_Klarna();
+		$this->stripe = new ClubCal_Lite_Stripe();
 	}
 
 	public function plugin_file(): string {
@@ -68,6 +77,9 @@ final class ClubCal_Lite {
 		$this->booking->register();
 		$this->payment->register();
 		$this->mailchimp->register();
+		$this->swish->register();
+		$this->klarna->register();
+		$this->stripe->register();
 	}
 
 	public function load_textdomain(): void {

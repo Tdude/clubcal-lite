@@ -319,6 +319,73 @@
     });
   }
 
+  var paymentPollInterval = null;
+
+  function startPaymentPolling(checkUrl, containerEl) {
+    if (paymentPollInterval) {
+      clearInterval(paymentPollInterval);
+    }
+
+    var pollCount = 0;
+    var maxPolls = 120; // 10 minutes at 5 second intervals
+
+    paymentPollInterval = setInterval(function () {
+      pollCount++;
+      
+      if (pollCount > maxPolls) {
+        clearInterval(paymentPollInterval);
+        updatePaymentStatus(containerEl, 'timeout');
+        return;
+      }
+
+      fetch(checkUrl, { credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+          if (data && data.success && data.data) {
+            if (data.data.paid || data.data.status === 'PAID') {
+              clearInterval(paymentPollInterval);
+              updatePaymentStatus(containerEl, 'paid');
+            } else if (data.data.status === 'DECLINED' || data.data.status === 'ERROR' || data.data.status === 'CANCELLED') {
+              clearInterval(paymentPollInterval);
+              updatePaymentStatus(containerEl, 'failed');
+            }
+          }
+        })
+        .catch(function () {
+          // Ignore errors, keep polling
+        });
+    }, 5000); // Poll every 5 seconds
+  }
+
+  function updatePaymentStatus(containerEl, status) {
+    var statusEl = qs('.clubcal-lite-payment-status', containerEl);
+    if (!statusEl) return;
+
+    statusEl.setAttribute('data-status', status);
+    var textEl = qs('.clubcal-lite-status-text', statusEl);
+    var spinnerEl = qs('.clubcal-lite-status-spinner', statusEl);
+
+    if (status === 'paid') {
+      if (spinnerEl) spinnerEl.style.display = 'none';
+      statusEl.className = 'clubcal-lite-payment-status clubcal-lite-payment-status--success';
+      if (textEl) textEl.innerHTML = '✓ ' + (window.ClubCalLite.i18n.paymentConfirmed || 'Betalning bekräftad!');
+      
+      // Hide QR/button after success
+      var qrEl = qs('.clubcal-lite-swish-qr', containerEl);
+      var btnEl = qs('.clubcal-lite-swish-button', containerEl);
+      if (qrEl) qrEl.style.display = 'none';
+      if (btnEl) btnEl.style.display = 'none';
+    } else if (status === 'failed') {
+      if (spinnerEl) spinnerEl.style.display = 'none';
+      statusEl.className = 'clubcal-lite-payment-status clubcal-lite-payment-status--error';
+      if (textEl) textEl.innerHTML = '✗ ' + (window.ClubCalLite.i18n.paymentFailed || 'Betalning misslyckades');
+    } else if (status === 'timeout') {
+      if (spinnerEl) spinnerEl.style.display = 'none';
+      statusEl.className = 'clubcal-lite-payment-status clubcal-lite-payment-status--warning';
+      if (textEl) textEl.innerHTML = (window.ClubCalLite.i18n.paymentTimeout || 'Betalningen kunde inte bekräftas. Kontakta oss om du har betalat.');
+    }
+  }
+
   function handleBookingSubmit(form) {
     if (!window.ClubCalLite) {
       return;
@@ -364,18 +431,72 @@
             // Show payment info if present
             if (data.data.payment) {
               var p = data.data.payment;
-              html += '<div class="clubcal-lite-payment-info" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid rgba(0,0,0,0.1);">';
+              html += '<div class="clubcal-lite-payment-info" data-payment-reference="' + (p.reference || '') + '" data-check-url="' + (p.check_url || '') + '">';
               
-              if (p.method === 'swish') {
-                html += '<strong>' + (window.ClubCalLite.i18n.payWithSwish || 'Pay with Swish:') + '</strong><br>';
-                html += '<div style="font-size: 1.25em; margin: 8px 0;">';
-                html += '<strong>' + p.swish_number + '</strong><br>';
-                html += p.amount + ' ' + (p.currency || 'SEK');
+              if (p.method === 'stripe' && p.checkout_url) {
+                // Stripe - redirect to Stripe Checkout
+                html += '<div class="clubcal-lite-stripe-checkout">';
+                html += '<p>' + (window.ClubCalLite.i18n.redirectingToPayment || 'Redirecting to payment...') + '</p>';
+                html += '<a href="' + p.checkout_url + '" class="clubcal-lite-stripe-button">';
+                html += (window.ClubCalLite.i18n.proceedToPayment || 'Proceed to Payment') + ' →';
+                html += '</a>';
                 html += '</div>';
-                html += '<small>' + (window.ClubCalLite.i18n.swishMessage || 'Message:') + ' <code>' + p.reference + '</code></small>';
+                
+                // Auto-redirect after short delay
+                setTimeout(function() {
+                  window.location.href = p.checkout_url;
+                }, 1500);
+                
+              } else if (p.method === 'klarna' && p.html_snippet) {
+                // Klarna checkout - embed their widget
+                html += '<div class="clubcal-lite-klarna-checkout">';
+                html += '<div class="clubcal-lite-klarna-header">';
+                html += '<span class="clubcal-lite-klarna-amount">' + p.amount + ' ' + (p.currency || 'SEK') + '</span>';
+                html += '</div>';
+                html += '<div id="klarna-checkout-container">' + p.html_snippet + '</div>';
+                html += '</div>';
+                
+              } else if (p.method === 'swish') {
+                var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                
+                html += '<div class="clubcal-lite-swish-header">';
+                html += '<img src="https://www.swish.nu/images/swish-logo.svg" alt="Swish" class="clubcal-lite-swish-logo" />';
+                html += '<span class="clubcal-lite-swish-amount">' + p.amount + ' ' + (p.currency || 'SEK') + '</span>';
+                html += '</div>';
+                
+                if (isMobile && p.deep_link) {
+                  // Mobile: Show button to open Swish app
+                  html += '<a href="' + p.deep_link + '" class="clubcal-lite-swish-button">';
+                  html += (window.ClubCalLite.i18n.openSwish || 'Öppna Swish');
+                  html += '</a>';
+                  html += '<p class="clubcal-lite-swish-manual">';
+                  html += (window.ClubCalLite.i18n.orPayManually || 'Eller betala manuellt till:') + ' <strong>' + p.swish_number + '</strong>';
+                  html += '</p>';
+                } else if (p.qr_url) {
+                  // Desktop: Show QR code
+                  html += '<div class="clubcal-lite-swish-qr">';
+                  html += '<p>' + (window.ClubCalLite.i18n.scanQR || 'Skanna QR-koden med Swish-appen:') + '</p>';
+                  html += '<img src="' + p.qr_url + '" alt="Swish QR" class="clubcal-lite-qr-image" />';
+                  html += '</div>';
+                  html += '<p class="clubcal-lite-swish-manual">';
+                  html += (window.ClubCalLite.i18n.orPayManually || 'Eller betala manuellt till:') + ' <strong>' + p.swish_number + '</strong>';
+                  html += '</p>';
+                } else {
+                  // Fallback: Just show number
+                  html += '<p>' + (window.ClubCalLite.i18n.payToNumber || 'Betala till:') + ' <strong>' + p.swish_number + '</strong></p>';
+                }
+                
+                html += '<p class="clubcal-lite-swish-ref">' + (window.ClubCalLite.i18n.swishMessage || 'Meddelande:') + ' <code>' + p.reference + '</code></p>';
+                
+                // Payment status indicator
+                html += '<div class="clubcal-lite-payment-status" data-status="pending">';
+                html += '<span class="clubcal-lite-status-spinner"></span> ';
+                html += '<span class="clubcal-lite-status-text">' + (window.ClubCalLite.i18n.awaitingPayment || 'Väntar på betalning...') + '</span>';
+                html += '</div>';
+                
               } else if (p.method === 'manual') {
                 html += '<strong>' + p.message + '</strong><br>';
-                html += (window.ClubCalLite.i18n.amount || 'Amount:') + ' ' + p.amount;
+                html += (window.ClubCalLite.i18n.amount || 'Belopp:') + ' ' + p.amount;
               }
               
               html += '</div>';
@@ -383,6 +504,11 @@
             
             messageEl.innerHTML = html;
             messageEl.style.display = 'block';
+            
+            // Start polling for payment status if Swish
+            if (data.data.payment && data.data.payment.method === 'swish' && data.data.payment.check_url) {
+              startPaymentPolling(data.data.payment.check_url, messageEl);
+            }
           }
         } else {
           // Error

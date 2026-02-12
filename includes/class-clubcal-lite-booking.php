@@ -199,7 +199,7 @@ final class ClubCal_Lite_Booking {
 		$event_start = get_post_meta($event_id, '_clubcal_start', true);
 		$event_location = get_post_meta($event_id, '_clubcal_location', true);
 
-		// Get payment settings
+		// Get payment settings and create payment request
 		$payment_info = null;
 		if (class_exists('ClubCal_Lite_Payment')) {
 			$payment_settings = get_option(ClubCal_Lite_Payment::OPTION_KEY, []);
@@ -207,23 +207,98 @@ final class ClubCal_Lite_Booking {
 			
 			if (!empty($payment_settings['enabled']) && $price) {
 				// Extract numeric amount from price string (e.g., "150 kr" -> "150")
-				$amount = preg_replace('/[^0-9.]/', '', $price);
+				$amount = (float) preg_replace('/[^0-9.]/', '', $price);
+				$payment_method = $payment_settings['payment_method'] ?? 'manual';
 				
-				if ($payment_settings['payment_method'] === 'swish' && $amount > 0) {
-					$swish_data = ClubCal_Lite_Payment::generate_swish_payment(
+				if ($payment_method === 'stripe' && $amount > 0 && class_exists('ClubCal_Lite_Stripe')) {
+					// Use Stripe Checkout
+					$stripe = new ClubCal_Lite_Stripe();
+					$stripe_result = $stripe->create_checkout_session(
 						$booking_id,
 						$amount,
-						sprintf(__('Booking %s', 'clubcal-lite'), $event_title)
+						$event_title
 					);
 					
-					if (empty($swish_data['error'])) {
+					if (!empty($stripe_result['success'])) {
+						$payment_info = [
+							'method'       => 'stripe',
+							'amount'       => $amount,
+							'currency'     => 'SEK',
+							'session_id'   => $stripe_result['session_id'],
+							'checkout_url' => $stripe_result['checkout_url'],
+						];
+
+						// Log pending payment
+						ClubCal_Lite_Payment::log_payment([
+							'booking_id' => $booking_id,
+							'event_id'   => $event_id,
+							'amount'     => $amount,
+							'currency'   => 'SEK',
+							'method'     => 'stripe',
+							'status'     => 'pending',
+							'reference'  => $stripe_result['session_id'],
+							'email'      => $email,
+							'name'       => $name,
+							'notes'      => 'Stripe checkout session created',
+						]);
+
+						// Update booking status
+						update_post_meta($booking_id, '_clubcal_booking_status', 'pending_payment');
+					}
+				} elseif ($payment_method === 'klarna' && $amount > 0 && class_exists('ClubCal_Lite_Klarna')) {
+					// Use Klarna checkout
+					$klarna = new ClubCal_Lite_Klarna();
+					$klarna_result = $klarna->create_checkout_order(
+						$booking_id,
+						$amount,
+						$event_title
+					);
+					
+					if (!empty($klarna_result['success'])) {
+						$payment_info = [
+							'method'       => 'klarna',
+							'amount'       => $amount,
+							'currency'     => 'SEK',
+							'order_id'     => $klarna_result['order_id'],
+							'html_snippet' => $klarna_result['html_snippet'],
+						];
+
+						// Log pending payment
+						ClubCal_Lite_Payment::log_payment([
+							'booking_id' => $booking_id,
+							'event_id'   => $event_id,
+							'amount'     => $amount,
+							'currency'   => 'SEK',
+							'method'     => 'klarna',
+							'status'     => 'pending',
+							'reference'  => $klarna_result['order_id'],
+							'email'      => $email,
+							'name'       => $name,
+							'notes'      => 'Klarna checkout initiated',
+						]);
+
+						// Update booking status
+						update_post_meta($booking_id, '_clubcal_booking_status', 'pending_payment');
+					}
+				} elseif ($payment_method === 'swish' && $amount > 0 && class_exists('ClubCal_Lite_Swish')) {
+					// Use Swish
+					$swish = new ClubCal_Lite_Swish();
+					$swish_result = $swish->create_payment_request(
+						$booking_id,
+						$amount,
+						sprintf(__('Booking %s', 'clubcal-lite'), substr($event_title, 0, 30))
+					);
+					
+					if (!empty($swish_result['success'])) {
 						$payment_info = [
 							'method'       => 'swish',
 							'amount'       => $amount,
 							'currency'     => 'SEK',
-							'swish_number' => $swish_data['swish_number'],
-							'reference'    => $swish_data['reference'],
-							'message'      => $swish_data['message'],
+							'swish_number' => $swish_result['swish_number'],
+							'reference'    => $swish_result['payment_reference'],
+							'qr_url'       => $swish_result['qr_url'],
+							'deep_link'    => $swish_result['deep_link'],
+							'check_url'    => $swish_result['check_url'],
 						];
 
 						// Log pending payment
@@ -234,10 +309,10 @@ final class ClubCal_Lite_Booking {
 							'currency'   => 'SEK',
 							'method'     => 'swish',
 							'status'     => 'pending',
-							'reference'  => $swish_data['reference'],
+							'reference'  => $swish_result['payment_reference'],
 							'email'      => $email,
 							'name'       => $name,
-							'notes'      => 'Awaiting Swish payment',
+							'notes'      => 'Swish payment initiated',
 						]);
 
 						// Update booking status if payment required
@@ -245,7 +320,7 @@ final class ClubCal_Lite_Booking {
 							update_post_meta($booking_id, '_clubcal_booking_status', 'pending_payment');
 						}
 					}
-				} elseif ($payment_settings['payment_method'] === 'manual') {
+				} elseif ($payment_method === 'manual') {
 					$payment_info = [
 						'method'  => 'manual',
 						'amount'  => $price,

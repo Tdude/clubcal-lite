@@ -443,3 +443,177 @@ msgstr "Bekräftelsekod: %s"
 
 msgid "See you there!"
 msgstr "Vi ses där!"
+
+# ====================
+# Swish Payment Strings
+# ====================
+
+msgid "Open Swish"
+msgstr "Öppna Swish"
+
+msgid "Scan the QR code with the Swish app:"
+msgstr "Skanna QR-koden med Swish-appen:"
+
+msgid "Or pay manually to:"
+msgstr "Eller betala manuellt till:"
+
+msgid "Pay to:"
+msgstr "Betala till:"
+
+msgid "Awaiting payment..."
+msgstr "Väntar på betalning..."
+
+msgid "Payment confirmed!"
+msgstr "Betalning bekräftad!"
+
+msgid "Payment failed"
+msgstr "Betalning misslyckades"
+
+msgid "Payment could not be confirmed. Contact us if you have paid."
+msgstr "Betalningen kunde inte bekräftas. Kontakta oss om du har betalat."
+
+msgid "Test Mode"
+msgstr "Testläge"
+
+msgid "Use Swish test/sandbox environment"
+msgstr "Använd Swish test-/sandlådemiljö"
+
+msgid "Merchant Swish number (10 digits). Required for API integration."
+msgstr "Swishnummer för företag (10 siffror). Krävs för API-integration."
+
+msgid "Certificate Path"
+msgstr "Certifikatsökväg"
+
+msgid "Full server path to your Swish merchant certificate (.p12 file)."
+msgstr "Fullständig serversökväg till ditt Swish-företagscertifikat (.p12-fil)."
+
+msgid "Certificate Password"
+msgstr "Certifikatlösenord"
+
+msgid "Password for the certificate file."
+msgstr "Lösenord för certifikatfilen."
+
+msgid "Note:"
+msgstr "Obs:"
+
+msgid "Without API credentials, the plugin will show QR code and Swish number for manual payment. You can confirm payments manually in the admin."
+msgstr "Utan API-uppgifter visar pluginet QR-kod och Swishnummer för manuell betalning. Du kan bekräfta betalningar manuellt i admin."
+
+msgid "For automatic payment confirmation, you need a Swish for Merchants agreement with your bank and the merchant certificate."
+msgstr "För automatisk betalningsbekräftelse behöver du ett Swish för företag-avtal med din bank och företagscertifikatet."
+
+msgid "Invalid booking."
+msgstr "Ogiltig bokning."
+
+msgid "Invalid amount."
+msgstr "Ogiltigt belopp."
+
+msgid "Invalid request."
+msgstr "Ogiltig förfrågan."
+
+msgid "Payment not found."
+msgstr "Betalning hittades inte."
+
+# ====================
+# Klarna Strings
+# ====================
+
+msgid "Klarna Settings"
+msgstr "Klarna-inställningar"
+
+msgid "Use Klarna Playground (test environment)"
+msgstr "Använd Klarna Playground (testmiljö)"
+
+msgid "Merchant ID (UID)"
+msgstr "Handlar-ID (UID)"
+
+msgid "Your Klarna API username/UID from the Merchant Portal."
+msgstr "Ditt Klarna API-användarnamn/UID från Merchant Portal."
+
+msgid "API Secret"
+msgstr "API-hemlighet"
+
+msgid "Your Klarna API password/secret."
+msgstr "Ditt Klarna API-lösenord/hemlighet."
+
+msgid "Get Klarna credentials:"
+msgstr "Hämta Klarna-uppgifter:"
+
+msgid "Go to"
+msgstr "Gå till"
+
+msgid "Create account or sign in"
+msgstr "Skapa konto eller logga in"
+
+msgid "Go to Settings → API Credentials"
+msgstr "Gå till Inställningar → API-uppgifter"
+
+msgid "Generate new API credentials"
+msgstr "Generera nya API-uppgifter"
+
+msgid "Klarna is recommended - easy setup, supports cards and direct bank payment."
+msgstr "Klarna rekommenderas - enkel setup, stödjer kort och direktbetalning från bank."
+
+msgid "Klarna not configured."
+msgstr "Klarna inte konfigurerat."
+
+msgid "Invalid Klarna response."
+msgstr "Ogiltigt Klarna-svar."
+
+msgid "Could not load payment form."
+msgstr "Kunde inte ladda betalningsformulär."
+
+msgid "Payment not available."
+msgstr "Betalning ej tillgänglig."
+
+msgid "Booking Confirmed!"
+msgstr "Bokning bekräftad!"
+
+msgid "A confirmation email has been sent to you."
+msgstr "Ett bekräftelsemail har skickats till dig."
+
+# ====================
+# Stripe Strings
+# ====================
+
+msgid "Webhook Secret"
+msgstr "Webhook-hemlighet"
+
+msgid "From Stripe Dashboard → Developers → Webhooks"
+msgstr "Från Stripe Dashboard → Developers → Webhooks"
+
+msgid "Webhook URL:"
+msgstr "Webhook-URL:"
+
+msgid "Setup steps:"
+msgstr "Installationssteg:"
+
+msgid "Get API keys from"
+msgstr "Hämta API-nycklar från"
+
+msgid "Create webhook at"
+msgstr "Skapa webhook på"
+
+msgid "Add endpoint:"
+msgstr "Lägg till endpoint:"
+
+msgid "Select event:"
+msgstr "Välj event:"
+
+msgid "Starts with pk_test_ (test) or pk_live_ (production)"
+msgstr "Börjar med pk_test_ (test) eller pk_live_ (produktion)"
+
+msgid "Starts with sk_test_ (test) or sk_live_ (production)"
+msgstr "Börjar med sk_test_ (test) eller sk_live_ (produktion)"
+
+msgid "Stripe not configured."
+msgstr "Stripe inte konfigurerat."
+
+msgid "Invalid Stripe response."
+msgstr "Ogiltigt Stripe-svar."
+
+msgid "Redirecting to payment..."
+msgstr "Omdirigerar till betalning..."
+
+msgid "Proceed to Payment"
+msgstr "Fortsätt till betalning"

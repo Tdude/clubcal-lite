@@ -121,14 +121,28 @@ final class ClubCal_Lite_Payment {
 		$sanitized = [];
 		
 		$sanitized['enabled'] = !empty($input['enabled']);
-		$sanitized['payment_method'] = sanitize_text_field($input['payment_method'] ?? 'swish');
+		$sanitized['payment_method'] = sanitize_text_field($input['payment_method'] ?? 'klarna');
+		$sanitized['require_payment'] = !empty($input['require_payment']);
+		$sanitized['currency'] = sanitize_text_field($input['currency'] ?? 'SEK');
+		
+		// Klarna settings
+		$sanitized['klarna_test_mode'] = !empty($input['klarna_test_mode']);
+		$sanitized['klarna_merchant_id'] = sanitize_text_field($input['klarna_merchant_id'] ?? '');
+		$sanitized['klarna_api_secret'] = sanitize_text_field($input['klarna_api_secret'] ?? '');
+		
+		// Swish settings
 		$sanitized['swish_number'] = sanitize_text_field($input['swish_number'] ?? '');
 		$sanitized['swish_payee_alias'] = sanitize_text_field($input['swish_payee_alias'] ?? '');
 		$sanitized['swish_cert_path'] = sanitize_text_field($input['swish_cert_path'] ?? '');
+		$sanitized['swish_cert_pass'] = sanitize_text_field($input['swish_cert_pass'] ?? '');
+		$sanitized['swish_test_mode'] = !empty($input['swish_test_mode']);
+		
+		// Stripe settings
 		$sanitized['stripe_publishable'] = sanitize_text_field($input['stripe_publishable'] ?? '');
 		$sanitized['stripe_secret'] = sanitize_text_field($input['stripe_secret'] ?? '');
-		$sanitized['currency'] = sanitize_text_field($input['currency'] ?? 'SEK');
-		$sanitized['require_payment'] = !empty($input['require_payment']);
+		$sanitized['stripe_webhook_secret'] = sanitize_text_field($input['stripe_webhook_secret'] ?? '');
+		
+		// Mailchimp settings
 		$sanitized['mailchimp_api_key'] = sanitize_text_field($input['mailchimp_api_key'] ?? '');
 		$sanitized['mailchimp_list_id'] = sanitize_text_field($input['mailchimp_list_id'] ?? '');
 		$sanitized['mailchimp_enabled'] = !empty($input['mailchimp_enabled']);
@@ -146,6 +160,32 @@ final class ClubCal_Lite_Payment {
 
 		$settings = $this->get_settings();
 		?>
+		<style>
+			.clubcal-settings-section {
+				margin: 20px 0;
+				border: 1px solid #ccd0d4;
+				border-radius: 4px;
+				background: #f9f9f9;
+			}
+			.clubcal-settings-section[open] {
+				background: #fff;
+			}
+			.clubcal-settings-summary {
+				padding: 12px 16px;
+				cursor: pointer;
+				user-select: none;
+			}
+			.clubcal-settings-summary:hover {
+				background: #f0f0f1;
+			}
+			.clubcal-settings-section .form-table {
+				margin: 0 16px 16px;
+			}
+			.clubcal-settings-section .description {
+				margin-left: 16px;
+				margin-right: 16px;
+			}
+		</style>
 		<div class="wrap">
 			<h1><?php echo esc_html__('Payment Settings', 'clubcal-lite'); ?></h1>
 			
@@ -167,10 +207,12 @@ final class ClubCal_Lite_Payment {
 						<th scope="row"><?php esc_html_e('Payment Method', 'clubcal-lite'); ?></th>
 						<td>
 							<select name="<?php echo esc_attr(self::OPTION_KEY); ?>[payment_method]">
+								<option value="klarna" <?php selected($settings['payment_method'], 'klarna'); ?>>Klarna</option>
 								<option value="swish" <?php selected($settings['payment_method'], 'swish'); ?>>Swish</option>
 								<option value="stripe" <?php selected($settings['payment_method'], 'stripe'); ?>>Stripe</option>
 								<option value="manual" <?php selected($settings['payment_method'], 'manual'); ?>><?php esc_html_e('Manual (pay at venue)', 'clubcal-lite'); ?></option>
 							</select>
+							<p class="description"><?php esc_html_e('Klarna is recommended - easy setup, supports cards and direct bank payment.', 'clubcal-lite'); ?></p>
 						</td>
 					</tr>
 
@@ -186,7 +228,45 @@ final class ClubCal_Lite_Payment {
 					</tr>
 				</table>
 
-				<h2 class="title"><?php esc_html_e('Swish Settings', 'clubcal-lite'); ?></h2>
+				<details class="clubcal-settings-section">
+				<summary class="clubcal-settings-summary"><h2 class="title" style="display:inline; cursor:pointer;"><?php esc_html_e('Klarna Settings', 'clubcal-lite'); ?> <span style="font-size:12px;color:#666;">▼</span></h2></summary>
+				<table class="form-table">
+					<tr>
+						<th scope="row"><?php esc_html_e('Test Mode', 'clubcal-lite'); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr(self::OPTION_KEY); ?>[klarna_test_mode]" value="1" <?php checked($settings['klarna_test_mode'] ?? false); ?> />
+								<?php esc_html_e('Use Klarna Playground (test environment)', 'clubcal-lite'); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e('Merchant ID (UID)', 'clubcal-lite'); ?></th>
+						<td>
+							<input type="text" name="<?php echo esc_attr(self::OPTION_KEY); ?>[klarna_merchant_id]" value="<?php echo esc_attr($settings['klarna_merchant_id'] ?? ''); ?>" class="regular-text" placeholder="K12345_abcdef" />
+							<p class="description"><?php esc_html_e('Your Klarna API username/UID from the Merchant Portal.', 'clubcal-lite'); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e('API Secret', 'clubcal-lite'); ?></th>
+						<td>
+							<input type="password" name="<?php echo esc_attr(self::OPTION_KEY); ?>[klarna_api_secret]" value="<?php echo esc_attr($settings['klarna_api_secret'] ?? ''); ?>" class="regular-text" />
+							<p class="description"><?php esc_html_e('Your Klarna API password/secret.', 'clubcal-lite'); ?></p>
+						</td>
+					</tr>
+				</table>
+				
+				<p class="description" style="background: #e8f5e9; padding: 12px; border-left: 4px solid #4caf50; margin: 16px 0;">
+					<strong><?php esc_html_e('Get Klarna credentials:', 'clubcal-lite'); ?></strong><br>
+					1. <?php esc_html_e('Go to', 'clubcal-lite'); ?> <a href="https://portal.klarna.com" target="_blank">portal.klarna.com</a><br>
+					2. <?php esc_html_e('Create account or sign in', 'clubcal-lite'); ?><br>
+					3. <?php esc_html_e('Go to Settings → API Credentials', 'clubcal-lite'); ?><br>
+					4. <?php esc_html_e('Generate new API credentials', 'clubcal-lite'); ?>
+				</p>
+				</details>
+
+				<details class="clubcal-settings-section">
+				<summary class="clubcal-settings-summary"><h2 class="title" style="display:inline; cursor:pointer;"><?php esc_html_e('Swish Settings', 'clubcal-lite'); ?> <span style="font-size:12px;color:#666;">▼</span></h2></summary>
 				<table class="form-table">
 					<tr>
 						<th scope="row"><?php esc_html_e('Swish Number', 'clubcal-lite'); ?></th>
@@ -196,29 +276,80 @@ final class ClubCal_Lite_Payment {
 						</td>
 					</tr>
 					<tr>
+						<th scope="row"><?php esc_html_e('Test Mode', 'clubcal-lite'); ?></th>
+						<td>
+							<label>
+								<input type="checkbox" name="<?php echo esc_attr(self::OPTION_KEY); ?>[swish_test_mode]" value="1" <?php checked($settings['swish_test_mode'] ?? false); ?> />
+								<?php esc_html_e('Use Swish test/sandbox environment', 'clubcal-lite'); ?>
+							</label>
+						</td>
+					</tr>
+					<tr>
 						<th scope="row"><?php esc_html_e('Swish Payee Alias', 'clubcal-lite'); ?></th>
 						<td>
 							<input type="text" name="<?php echo esc_attr(self::OPTION_KEY); ?>[swish_payee_alias]" value="<?php echo esc_attr($settings['swish_payee_alias']); ?>" class="regular-text" placeholder="1234567890" />
-							<p class="description"><?php esc_html_e('For Swish Commerce API integration (optional, leave blank for QR/manual flow).', 'clubcal-lite'); ?></p>
+							<p class="description"><?php esc_html_e('Merchant Swish number (10 digits). Required for API integration.', 'clubcal-lite'); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e('Certificate Path', 'clubcal-lite'); ?></th>
+						<td>
+							<input type="text" name="<?php echo esc_attr(self::OPTION_KEY); ?>[swish_cert_path]" value="<?php echo esc_attr($settings['swish_cert_path'] ?? ''); ?>" class="large-text" placeholder="/path/to/swish-certificate.p12" />
+							<p class="description"><?php esc_html_e('Full server path to your Swish merchant certificate (.p12 file).', 'clubcal-lite'); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e('Certificate Password', 'clubcal-lite'); ?></th>
+						<td>
+							<input type="password" name="<?php echo esc_attr(self::OPTION_KEY); ?>[swish_cert_pass]" value="<?php echo esc_attr($settings['swish_cert_pass'] ?? ''); ?>" class="regular-text" />
+							<p class="description"><?php esc_html_e('Password for the certificate file.', 'clubcal-lite'); ?></p>
 						</td>
 					</tr>
 				</table>
+				
+				<p class="description" style="background: #f0f6fc; padding: 12px; border-left: 4px solid #2271b1; margin: 16px 0;">
+					<strong><?php esc_html_e('Note:', 'clubcal-lite'); ?></strong> 
+					<?php esc_html_e('Without API credentials, the plugin will show QR code and Swish number for manual payment. You can confirm payments manually in the admin.', 'clubcal-lite'); ?>
+					<br><br>
+					<?php esc_html_e('For automatic payment confirmation, you need a Swish for Merchants agreement with your bank and the merchant certificate.', 'clubcal-lite'); ?>
+				</p>
+				</details>
 
-				<h2 class="title"><?php esc_html_e('Stripe Settings', 'clubcal-lite'); ?> <span style="color: #999; font-weight: normal; font-size: 14px;">(<?php esc_html_e('prepared, not active', 'clubcal-lite'); ?>)</span></h2>
+				<h2 class="title"><?php esc_html_e('Stripe Settings', 'clubcal-lite'); ?></h2>
 				<table class="form-table">
 					<tr>
 						<th scope="row"><?php esc_html_e('Publishable Key', 'clubcal-lite'); ?></th>
 						<td>
-							<input type="text" name="<?php echo esc_attr(self::OPTION_KEY); ?>[stripe_publishable]" value="<?php echo esc_attr($settings['stripe_publishable']); ?>" class="regular-text" placeholder="pk_..." />
+							<input type="text" name="<?php echo esc_attr(self::OPTION_KEY); ?>[stripe_publishable]" value="<?php echo esc_attr($settings['stripe_publishable'] ?? ''); ?>" class="large-text" placeholder="pk_test_..." />
+							<p class="description"><?php esc_html_e('Starts with pk_test_ (test) or pk_live_ (production)', 'clubcal-lite'); ?></p>
 						</td>
 					</tr>
 					<tr>
 						<th scope="row"><?php esc_html_e('Secret Key', 'clubcal-lite'); ?></th>
 						<td>
-							<input type="password" name="<?php echo esc_attr(self::OPTION_KEY); ?>[stripe_secret]" value="<?php echo esc_attr($settings['stripe_secret']); ?>" class="regular-text" placeholder="sk_..." />
+							<input type="password" name="<?php echo esc_attr(self::OPTION_KEY); ?>[stripe_secret]" value="<?php echo esc_attr($settings['stripe_secret'] ?? ''); ?>" class="large-text" placeholder="sk_test_..." />
+							<p class="description"><?php esc_html_e('Starts with sk_test_ (test) or sk_live_ (production)', 'clubcal-lite'); ?></p>
+						</td>
+					</tr>
+					<tr>
+						<th scope="row"><?php esc_html_e('Webhook Secret', 'clubcal-lite'); ?></th>
+						<td>
+							<input type="password" name="<?php echo esc_attr(self::OPTION_KEY); ?>[stripe_webhook_secret]" value="<?php echo esc_attr($settings['stripe_webhook_secret'] ?? ''); ?>" class="large-text" placeholder="whsec_..." />
+							<p class="description">
+								<?php esc_html_e('From Stripe Dashboard → Developers → Webhooks', 'clubcal-lite'); ?><br>
+								<?php esc_html_e('Webhook URL:', 'clubcal-lite'); ?> <code><?php echo esc_html(rest_url('clubcal-lite/v1/stripe-webhook')); ?></code>
+							</p>
 						</td>
 					</tr>
 				</table>
+				
+				<p class="description" style="background: #f3e5f5; padding: 12px; border-left: 4px solid #7b1fa2; margin: 16px 0;">
+					<strong><?php esc_html_e('Setup steps:', 'clubcal-lite'); ?></strong><br>
+					1. <?php esc_html_e('Get API keys from', 'clubcal-lite'); ?> <a href="https://dashboard.stripe.com/apikeys" target="_blank">Stripe Dashboard → Developers → API keys</a><br>
+					2. <?php esc_html_e('Create webhook at', 'clubcal-lite'); ?> <a href="https://dashboard.stripe.com/webhooks" target="_blank">Stripe Dashboard → Developers → Webhooks</a><br>
+					3. <?php esc_html_e('Add endpoint:', 'clubcal-lite'); ?> <code><?php echo esc_html(rest_url('clubcal-lite/v1/stripe-webhook')); ?></code><br>
+					4. <?php esc_html_e('Select event:', 'clubcal-lite'); ?> <code>checkout.session.completed</code>
+				</p>
 
 				<h2 class="title"><?php esc_html_e('Mailchimp Settings', 'clubcal-lite'); ?></h2>
 				<table class="form-table">
