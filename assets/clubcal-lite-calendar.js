@@ -320,49 +320,6 @@
   }
 
   var paymentPollInterval = null;
-  var stripeInstance = null;
-  var stripeCheckout = null;
-
-  function loadStripeJs(callback) {
-    if (window.Stripe) {
-      callback();
-      return;
-    }
-    var script = document.createElement('script');
-    script.src = 'https://js.stripe.com/v3/';
-    script.onload = callback;
-    document.head.appendChild(script);
-  }
-
-  function initStripeEmbeddedCheckout(paymentData, containerEl) {
-    var container = qs('#stripe-checkout-container', containerEl);
-    if (!container) return;
-
-    container.innerHTML = '<div style="text-align: center; padding: 20px;"><span class="clubcal-lite-status-spinner"></span> ' + 
-      (window.ClubCalLite.i18n.loadingPayment || 'Laddar betalning...') + '</div>';
-
-    loadStripeJs(function() {
-      try {
-        stripeInstance = window.Stripe(paymentData.publishable_key);
-        
-        stripeInstance.initEmbeddedCheckout({
-          clientSecret: paymentData.client_secret
-        }).then(function(checkout) {
-          stripeCheckout = checkout;
-          container.innerHTML = '';
-          checkout.mount(container);
-        }).catch(function(err) {
-          container.innerHTML = '<div style="color: #c62828; padding: 10px;">' + 
-            (window.ClubCalLite.i18n.paymentError || 'Kunde inte ladda betalning. ') + 
-            (err.message || '') + '</div>';
-        });
-      } catch (err) {
-        container.innerHTML = '<div style="color: #c62828; padding: 10px;">' + 
-          (window.ClubCalLite.i18n.paymentError || 'Kunde inte ladda betalning. ') + 
-          (err.message || '') + '</div>';
-      }
-    });
-  }
 
   function startPaymentPolling(checkUrl, containerEl) {
     if (paymentPollInterval) {
@@ -474,6 +431,7 @@
             // Show payment info if present
             if (data.data.payment) {
               var p = data.data.payment;
+              console.log('Payment data:', p);  // DEBUG
               html += '<div class="clubcal-lite-payment-info" data-payment-reference="' + (p.reference || '') + '" data-check-url="' + (p.check_url || '') + '">';
               
               if (p.method === 'stripe' && p.checkout_url) {
