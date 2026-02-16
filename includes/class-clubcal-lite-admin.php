@@ -108,7 +108,7 @@ final class ClubCal_Lite_Admin {
 			__('Event Details', 'clubcal-lite'),
 			[$this, 'render_event_details_meta_box'],
 			ClubCal_Lite::POST_TYPE,
-			'normal',
+			'side',
 			'high'
 		);
 
@@ -170,17 +170,23 @@ final class ClubCal_Lite_Admin {
 		$end = $this->utils->format_datetime_for_input((string) get_post_meta($post->ID, '_clubcal_end', true));
 		$all_day = get_post_meta($post->ID, '_clubcal_all_day', true);
 		$location = get_post_meta($post->ID, '_clubcal_location', true);
+		$start_manual = $start !== '' ? str_replace('T', ' ', $start) : '';
+		$end_manual = $end !== '' ? str_replace('T', ' ', $end) : '';
 
 		$all_day_checked = (($all_day === '1') || ($all_day === '' && $post->post_status === 'auto-draft')) ? 'checked' : '';
 
 		echo '<p>';
 		echo '<label for="clubcal_lite_start"><strong>' . esc_html__('Start date/time', 'clubcal-lite') . '</strong></label><br />';
-		echo '<input type="datetime-local" id="clubcal_lite_start" name="clubcal_lite_start" value="' . esc_attr($start) . '" style="width: 100%; max-width: 320px;" />';
+		echo '<input type="text" id="clubcal_lite_start" name="clubcal_lite_start" value="' . esc_attr($start_manual) . '" placeholder="YYYY-MM-DD HH:MM" style="width: 100%; max-width: 320px;" />';
+		echo '<br />';
+		echo '<input type="datetime-local" id="clubcal_lite_start_picker" value="' . esc_attr($start) . '" style="width: 100%; max-width: 320px; margin-top: 6px;" step="60" />';
 		echo '</p>';
 
 		echo '<p>';
 		echo '<label for="clubcal_lite_end"><strong>' . esc_html__('End date/time', 'clubcal-lite') . '</strong> <span style="font-weight: normal; color: #666;">(' . esc_html__('optional', 'clubcal-lite') . ')</span></label><br />';
-		echo '<input type="datetime-local" id="clubcal_lite_end" name="clubcal_lite_end" value="' . esc_attr($end) . '" style="width: 100%; max-width: 320px;" />';
+		echo '<input type="text" id="clubcal_lite_end" name="clubcal_lite_end" value="' . esc_attr($end_manual) . '" placeholder="YYYY-MM-DD HH:MM" style="width: 100%; max-width: 320px;" />';
+		echo '<br />';
+		echo '<input type="datetime-local" id="clubcal_lite_end_picker" value="' . esc_attr($end) . '" style="width: 100%; max-width: 320px; margin-top: 6px;" step="60" />';
 		echo '<p class="description" style="margin-top: 4px;">' . esc_html__('Leave empty for single-day events.', 'clubcal-lite') . '</p>';
 		echo '</p>';
 
@@ -222,17 +228,7 @@ final class ClubCal_Lite_Admin {
 		echo '</p>';
 
 		// Show current bookings count
-		if (class_exists('ClubCal_Lite_Booking') && $post->post_status !== 'auto-draft') {
-			$booking_count = ClubCal_Lite_Booking::get_booking_count($post->ID);
-			$spots_remaining = ClubCal_Lite_Booking::get_spots_remaining($post->ID);
-			
-			echo '<p style="background: #f0f0f1; padding: 10px; border-radius: 4px;">';
-			echo '<strong>' . esc_html__('Current bookings:', 'clubcal-lite') . '</strong> ' . esc_html($booking_count);
-			if ($spots_remaining !== null) {
-				echo ' / ' . esc_html($max_spots) . ' (' . esc_html($spots_remaining) . ' ' . esc_html__('spots left', 'clubcal-lite') . ')';
-			}
-			echo '</p>';
-		}
+		// Bookings display is handled in a dedicated meta box (ClubCal_Lite_Booking)
 	}
 
 	public function save_meta_boxes(int $post_id): void {
@@ -257,8 +253,19 @@ final class ClubCal_Lite_Admin {
 		$all_day = isset($_POST['clubcal_lite_all_day']) ? '1' : '0';
 		$location = isset($_POST['clubcal_lite_location']) ? sanitize_text_field(wp_unslash($_POST['clubcal_lite_location'])) : '';
 
+		$start_raw = trim($start_raw);
+		$end_raw = trim($end_raw);
+		$is_start_date_only = (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $start_raw);
+		$is_end_date_only = (bool) preg_match('/^\d{4}-\d{2}-\d{2}$/', $end_raw);
+		if ($is_start_date_only) {
+			$all_day = '1';
+		}
+
 		$start = $this->utils->normalize_datetime_for_storage($start_raw);
 		$end = $this->utils->normalize_datetime_for_storage($end_raw);
+		if ($all_day === '1' && $is_end_date_only && $end !== '') {
+			$end = preg_replace('/\s00:00:00$/', ' 23:59:59', $end);
+		}
 
 		if ($start !== '') {
 			update_post_meta($post_id, '_clubcal_start', $start);
