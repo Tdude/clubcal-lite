@@ -1,41 +1,27 @@
 (function () {
-  function sync(from, to, formatter) {
-    if (!from || !to) {
-      return;
-    }
-
-    function handler() {
-      var value = from.value || '';
-      var next = formatter(value);
-      if (typeof next !== 'string') {
-        return;
-      }
-      to.value = next;
-    }
-
-    from.addEventListener('input', handler);
-    from.addEventListener('change', handler);
+  function isDateOnly(value) {
+    return /^\d{4}-\d{2}-\d{2}$/.test((value || '').trim());
   }
 
-  function toManual(value) {
-    // datetime-local: YYYY-MM-DDTHH:MM -> YYYY-MM-DD HH:MM
-    value = (value || '').replace('T', ' ').trim();
-    // Keep only up to minutes if seconds exist.
-    if (value.length >= 16) {
-      value = value.slice(0, 16);
+  function toDateOnly(value) {
+    value = (value || '').trim();
+    if (value.length >= 10) {
+      return value.slice(0, 10);
     }
     return value;
   }
 
-  function toPicker(value) {
-    // manual: YYYY-MM-DD HH:MM -> YYYY-MM-DDTHH:MM
+  function toDateTimeLocal(value) {
     value = (value || '').trim();
+    if (value === '') {
+      return '';
+    }
 
-    // Allow date-only input and default to midnight for the picker.
-    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    if (isDateOnly(value)) {
       return value + 'T00:00';
     }
 
+    // Some browsers may already provide YYYY-MM-DDTHH:MM
     value = value.replace(' ', 'T');
     if (value.length >= 16) {
       value = value.slice(0, 16);
@@ -43,44 +29,44 @@
     return value;
   }
 
+  function setTypePreserveValue(input, nextType) {
+    if (!input) {
+      return;
+    }
+
+    var currentValue = input.value || '';
+
+    if (nextType === 'date') {
+      input.type = 'date';
+      input.value = toDateOnly(currentValue);
+      return;
+    }
+
+    if (nextType === 'datetime-local') {
+      input.type = 'datetime-local';
+      input.value = toDateTimeLocal(currentValue);
+    }
+  }
+
   function init() {
-    var startManual = document.getElementById('clubcal_lite_start');
-    var endManual = document.getElementById('clubcal_lite_end');
-    var startPicker = document.getElementById('clubcal_lite_start_picker');
-    var endPicker = document.getElementById('clubcal_lite_end_picker');
     var allDay = document.getElementById('clubcal_lite_all_day');
+    var start = document.getElementById('clubcal_lite_start');
+    var end = document.getElementById('clubcal_lite_end');
 
-    // Manual -> Picker (when typing)
-    sync(startManual, startPicker, toPicker);
-    sync(endManual, endPicker, toPicker);
-
-    // Picker -> Manual (when selecting)
-    sync(startPicker, startManual, toManual);
-    sync(endPicker, endManual, toManual);
-
-    function isDateOnly(v) {
-      return /^\d{4}-\d{2}-\d{2}$/.test((v || '').trim());
+    if (!allDay || !start || !end) {
+      return;
     }
 
-    function isDateTime(v) {
-      return /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}/.test((v || '').trim());
+    function applyType() {
+      var nextType = allDay.checked ? 'date' : 'datetime-local';
+      setTypePreserveValue(start, nextType);
+      setTypePreserveValue(end, nextType);
     }
 
-    if (startManual && allDay) {
-      startManual.addEventListener('input', function () {
-        if (isDateOnly(startManual.value)) {
-          allDay.checked = true;
-        }
-      });
-    }
+    allDay.addEventListener('change', applyType);
 
-    if (startPicker && allDay) {
-      startPicker.addEventListener('change', function () {
-        if (isDateTime(startPicker.value)) {
-          allDay.checked = false;
-        }
-      });
-    }
+    // Ensure correct type/value if the browser restores cached form state.
+    window.setTimeout(applyType, 0);
   }
 
   if (document.readyState === 'loading') {
