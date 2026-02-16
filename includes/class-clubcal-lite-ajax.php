@@ -105,6 +105,24 @@ final class ClubCal_Lite_Ajax {
 				continue;
 			}
 
+			$end_iso = '';
+			if ($has_end_date) {
+				$end_iso = $this->utils->format_datetime_for_iso($end_meta);
+			}
+
+			// FullCalendar allDay events use end-exclusive semantics and should be sent as date-only strings.
+			// Example: 2026-03-01 to 2026-03-03 => start=2026-03-01, end=2026-03-04
+			if ($is_all_day) {
+				$start_day = wp_date('Y-m-d', $start_meta_ts);
+				$end_day_inclusive = $has_end_date ? wp_date('Y-m-d', $end_meta_ts) : $start_day;
+				$end_exclusive_dt = \DateTimeImmutable::createFromFormat('Y-m-d', $end_day_inclusive, wp_timezone());
+				if ($end_exclusive_dt instanceof \DateTimeImmutable) {
+					$end_exclusive_dt = $end_exclusive_dt->modify('+1 day');
+					$end_iso = $end_exclusive_dt->format('Y-m-d');
+				}
+				$start_iso = $start_day;
+			}
+
 			$event = [
 				'id' => $post->ID,
 				'title' => html_entity_decode(get_the_title($post), ENT_QUOTES | ENT_HTML5, 'UTF-8'),
@@ -113,11 +131,8 @@ final class ClubCal_Lite_Ajax {
 				'allDay' => $is_all_day,
 			];
 
-			if ($has_end_date) {
-				$end_iso = $this->utils->format_datetime_for_iso($end_meta);
-				if ($end_iso !== '') {
-					$event['end'] = $end_iso;
-				}
+			if ($end_iso !== '') {
+				$event['end'] = $end_iso;
 			}
 
 			$excerpt_plain = trim(html_entity_decode(wp_strip_all_tags((string) $post->post_content), ENT_QUOTES | ENT_HTML5, 'UTF-8'));
