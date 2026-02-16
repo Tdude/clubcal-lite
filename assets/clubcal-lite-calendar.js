@@ -654,10 +654,20 @@
     var listDuration = { months: listMonths };
     var listButtonText = listMonths === 1 ? '1 månad' : listMonths + ' månader';
 
+    var timeZone = 'local';
+    try {
+      if (window.ClubCalLite && window.ClubCalLite.timeZone) {
+        timeZone = String(window.ClubCalLite.timeZone);
+      }
+    } catch (e) {}
+
     var calendar = new FullCalendar.Calendar(el, {
       headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listRange' },
       locale: 'sv',
+      timeZone: timeZone,
       firstDay: 1,
+      eventTimeFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
+      slotLabelFormat: { hour: '2-digit', minute: '2-digit', hour12: false },
       views: {
         listRange: {
           type: 'list',

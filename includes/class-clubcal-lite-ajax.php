@@ -25,10 +25,10 @@ final class ClubCal_Lite_Ajax {
 		$end = isset($_GET['end']) ? sanitize_text_field(wp_unslash($_GET['end'])) : '';
 		$category = isset($_GET['category']) ? sanitize_text_field(wp_unslash($_GET['category'])) : '';
 
-		$start_ts = strtotime($start);
-		$end_ts = strtotime($end);
+		$start_ts = $this->utils->parse_any_datetime_to_timestamp($start);
+		$end_ts = $this->utils->parse_any_datetime_to_timestamp($end);
 
-		if ($start_ts === false || $end_ts === false) {
+		if ($start_ts <= 0 || $end_ts <= 0) {
 			wp_send_json_error('Invalid date range', 400);
 		}
 
@@ -71,19 +71,28 @@ final class ClubCal_Lite_Ajax {
 				continue;
 			}
 
-			$start_meta_ts = strtotime($start_meta);
-			if ($start_meta_ts === false) {
+			$start_meta_ts = $this->utils->parse_stored_datetime_to_timestamp($start_meta);
+			if ($start_meta_ts <= 0) {
 				continue;
 			}
 
 			$end_meta = trim((string) get_post_meta($post->ID, '_clubcal_end', true));
-			$end_meta_ts = ($end_meta !== '') ? strtotime($end_meta) : false;
-			$has_end_date = ($end_meta_ts !== false && $end_meta_ts > 0);
+			$end_meta_ts = ($end_meta !== '') ? $this->utils->parse_stored_datetime_to_timestamp($end_meta) : 0;
+			$has_end_date = ($end_meta_ts > $start_meta_ts);
 
 			$all_day_meta = (string) get_post_meta($post->ID, '_clubcal_all_day', true);
-			$is_all_day = ($all_day_meta === '1') || !$has_end_date;
+			$is_all_day = ($all_day_meta === '1');
 
-			$event_end_ts = $has_end_date ? $end_meta_ts : strtotime(wp_date('Y-m-d', $start_meta_ts) . ' 23:59:59');
+			$event_end_ts = $start_meta_ts;
+			if ($has_end_date) {
+				$event_end_ts = $end_meta_ts;
+			} elseif ($is_all_day) {
+				$day = wp_date('Y-m-d', $start_meta_ts);
+				$dt_end = \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $day . ' 23:59:59', wp_timezone());
+				if ($dt_end instanceof \DateTimeImmutable) {
+					$event_end_ts = (int) $dt_end->getTimestamp();
+				}
+			}
 
 			if ($start_meta_ts > $end_ts || $event_end_ts < $start_ts) {
 				continue;
@@ -193,17 +202,20 @@ final class ClubCal_Lite_Ajax {
 		$all_day = (string) get_post_meta($post->ID, '_clubcal_all_day', true);
 		$location = (string) get_post_meta($post->ID, '_clubcal_location', true);
 
-		$start_ts = strtotime($start_meta);
-		$end_ts = strtotime($end_meta);
+		$start_ts = $this->utils->parse_stored_datetime_to_timestamp($start_meta);
+		$end_ts = $end_meta !== '' ? $this->utils->parse_stored_datetime_to_timestamp($end_meta) : 0;
 
 		$date_text = '';
-		if ($start_ts !== false) {
-			$has_end = ($end_meta !== '' && $end_ts !== false && $end_ts > $start_ts);
-			$start_text = ($all_day === '1') ? wp_date('Y-m-d', $start_ts) : wp_date('Y-m-d H:i', $start_ts);
+		if ($start_ts > 0) {
+			$has_end = ($end_meta !== '' && $end_ts > $start_ts);
+			$date_format = (string) get_option('date_format');
+			$time_format = (string) get_option('time_format');
+			$format = ($all_day === '1') ? $date_format : ($date_format . ' ' . $time_format);
+			$start_text = wp_date($format, $start_ts);
 			$date_text = $start_text;
 
 			if ($has_end) {
-				$end_text = ($all_day === '1') ? wp_date('Y-m-d', $end_ts) : wp_date('Y-m-d H:i', $end_ts);
+				$end_text = wp_date($format, $end_ts);
 				if ($end_text !== $start_text) {
 					$date_text .= ' – ' . $end_text;
 				}

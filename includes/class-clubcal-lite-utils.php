@@ -16,6 +16,29 @@ final class ClubCal_Lite_Utils {
 		'#be185d',
 	];
 
+	private function parse_any_datetime_to_wp_timezone(string $value): ?\DateTimeImmutable {
+		$value = trim($value);
+		if ($value === '') {
+			return null;
+		}
+
+		$tz = wp_timezone();
+
+		// Try strict known local formats first.
+		$dt = $this->parse_datetime_local($value);
+		if ($dt instanceof \DateTimeImmutable) {
+			return $dt;
+		}
+
+		// Fall back to PHP parser (handles ISO8601 like 2026-02-16T00:00:00Z).
+		try {
+			$dt_any = new \DateTimeImmutable($value);
+			return $dt_any->setTimezone($tz);
+		} catch (\Exception $e) {
+			return null;
+		}
+	}
+
 	private function parse_datetime_local(string $value): ?\DateTimeImmutable {
 		$value = trim($value);
 		if ($value === '') {
@@ -65,6 +88,24 @@ final class ClubCal_Lite_Utils {
 		}
 
 		return $dt;
+	}
+
+	public function parse_stored_datetime_to_timestamp(string $stored): int {
+		$dt = $this->parse_stored_datetime($stored);
+		if (!$dt) {
+			return 0;
+		}
+
+		return (int) $dt->getTimestamp();
+	}
+
+	public function parse_any_datetime_to_timestamp(string $value): int {
+		$dt = $this->parse_any_datetime_to_wp_timezone($value);
+		if (!$dt) {
+			return 0;
+		}
+
+		return (int) $dt->getTimestamp();
 	}
 
 	public function normalize_datetime_for_storage(string $value): string {

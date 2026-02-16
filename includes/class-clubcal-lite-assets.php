@@ -108,6 +108,7 @@ final class ClubCal_Lite_Assets {
 			'ClubCalLite',
 			[
 				'ajaxUrl' => admin_url('admin-ajax.php'),
+				'timeZone' => (wp_timezone_string() !== '' ? wp_timezone_string() : 'local'),
 				'actionEvents' => ClubCal_Lite::AJAX_ACTION_EVENTS,
 				'actionDetails' => ClubCal_Lite::AJAX_ACTION_EVENT_DETAILS,
 				'actionBook' => ClubCal_Lite::AJAX_ACTION_BOOK,

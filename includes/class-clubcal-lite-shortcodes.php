@@ -133,26 +133,29 @@ final class ClubCal_Lite_Shortcodes {
 			$all_day    = (string) get_post_meta($post_id, '_clubcal_all_day', true);
 			$location   = (string) get_post_meta($post_id, '_clubcal_location', true);
 
-			$start_ts = strtotime($start_meta);
-			$end_ts = strtotime($end_meta);
+			$start_ts = $this->utils->parse_stored_datetime_to_timestamp($start_meta);
+			$end_ts = $end_meta !== '' ? $this->utils->parse_stored_datetime_to_timestamp($end_meta) : 0;
 			$date_text = '';
-			if ($start_ts !== false) {
-				$has_end = ($end_meta !== '' && $end_ts !== false && $end_ts > $start_ts);
+			if ($start_ts > 0) {
+				$has_end = ($end_meta !== '' && $end_ts > $start_ts);
+				$date_format = (string) get_option('date_format');
+				$time_format = (string) get_option('time_format');
+				$format = ($all_day === '1') ? $date_format : ($date_format . ' ' . $time_format);
 
 				if ($all_day === '1') {
-					$start_text = wp_date(__('F j, Y', 'clubcal-lite'), $start_ts);
+					$start_text = wp_date($format, $start_ts);
 					$date_text = $start_text;
 					if ($has_end) {
-						$end_text = wp_date(__('F j, Y', 'clubcal-lite'), $end_ts);
+						$end_text = wp_date($format, $end_ts);
 						if ($end_text !== $start_text) {
 							$date_text .= ' – ' . $end_text;
 						}
 					}
 				} else {
-					$start_text = wp_date(__('F j, Y \\a\\t H:i', 'clubcal-lite'), $start_ts);
+					$start_text = wp_date($format, $start_ts);
 					$date_text = $start_text;
 					if ($has_end) {
-						$end_text = wp_date(__('F j, Y \\a\\t H:i', 'clubcal-lite'), $end_ts);
+						$end_text = wp_date($format, $end_ts);
 						if ($end_text !== $start_text) {
 							$date_text .= ' – ' . $end_text;
 						}
