@@ -1,8 +1,4 @@
 (function () {
-  function isDateOnly(value) {
-    return /^\d{4}-\d{2}-\d{2}$/.test((value || '').trim());
-  }
-
   function toDateOnly(value) {
     value = (value || '').trim();
     if (value.length >= 10) {
@@ -16,51 +12,68 @@
     if (value === '') {
       return '';
     }
-
-    if (isDateOnly(value)) {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
       return value + 'T00:00';
     }
-
-    // Some browsers may already provide YYYY-MM-DDTHH:MM
-    value = value.replace(' ', 'T');
     if (value.length >= 16) {
-      value = value.slice(0, 16);
+      return value.slice(0, 16);
     }
     return value;
   }
 
-  function setTypePreserveValue(input, nextType) {
-    if (!input) {
+  function show(el, visible) {
+    if (!el) {
       return;
     }
+    el.style.display = visible ? '' : 'none';
+  }
 
-    var currentValue = input.value || '';
-
-    if (nextType === 'date') {
-      input.type = 'date';
-      input.value = toDateOnly(currentValue);
+  function setName(el, name) {
+    if (!el) {
       return;
     }
-
-    if (nextType === 'datetime-local') {
-      input.type = 'datetime-local';
-      input.value = toDateTimeLocal(currentValue);
+    if (name) {
+      el.setAttribute('name', name);
+    } else {
+      el.removeAttribute('name');
     }
   }
 
   function init() {
     var allDay = document.getElementById('clubcal_lite_all_day');
-    var start = document.getElementById('clubcal_lite_start');
-    var end = document.getElementById('clubcal_lite_end');
+    var startDate = document.getElementById('clubcal_lite_start_date');
+    var startDt = document.getElementById('clubcal_lite_start_dt');
+    var endDate = document.getElementById('clubcal_lite_end_date');
+    var endDt = document.getElementById('clubcal_lite_end_dt');
 
-    if (!allDay || !start || !end) {
+    if (!allDay || !startDate || !startDt || !endDate || !endDt) {
       return;
     }
 
     function applyType() {
-      var nextType = allDay.checked ? 'date' : 'datetime-local';
-      setTypePreserveValue(start, nextType);
-      setTypePreserveValue(end, nextType);
+      if (allDay.checked) {
+        startDate.value = toDateOnly(startDt.value || startDate.value);
+        endDate.value = toDateOnly(endDt.value || endDate.value);
+        show(startDate, true);
+        show(endDate, true);
+        show(startDt, false);
+        show(endDt, false);
+        setName(startDate, 'clubcal_lite_start');
+        setName(endDate, 'clubcal_lite_end');
+        setName(startDt, '');
+        setName(endDt, '');
+      } else {
+        startDt.value = toDateTimeLocal(startDt.value || startDate.value);
+        endDt.value = toDateTimeLocal(endDt.value || endDate.value);
+        show(startDate, false);
+        show(endDate, false);
+        show(startDt, true);
+        show(endDt, true);
+        setName(startDate, '');
+        setName(endDate, '');
+        setName(startDt, 'clubcal_lite_start');
+        setName(endDt, 'clubcal_lite_end');
+      }
     }
 
     allDay.addEventListener('change', applyType);

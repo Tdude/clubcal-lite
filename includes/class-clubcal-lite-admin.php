@@ -174,16 +174,18 @@ final class ClubCal_Lite_Admin {
 		$end_date = $end !== '' ? substr($end, 0, 10) : '';
 		$is_all_day = ($all_day === '1');
 
-		$all_day_checked = (($all_day === '1') || ($all_day === '' && $post->post_status === 'auto-draft')) ? 'checked' : '';
+		$all_day_checked = ($all_day === '1') ? 'checked' : '';
 
 		echo '<p>';
 		echo '<label for="clubcal_lite_start"><strong>' . esc_html__('Start date/time', 'clubcal-lite') . '</strong></label><br />';
-		echo '<input type="' . esc_attr($is_all_day ? 'date' : 'datetime-local') . '" id="clubcal_lite_start" name="clubcal_lite_start" value="' . esc_attr($is_all_day ? $start_date : $start) . '" style="width: 100%; max-width: 320px;" step="60" />';
+		echo '<input type="date" id="clubcal_lite_start_date" ' . ($is_all_day ? 'name="clubcal_lite_start"' : '') . ' value="' . esc_attr($start_date) . '" style="width: 100%; max-width: 320px;' . ($is_all_day ? '' : ' display:none;') . '" />';
+		echo '<input type="datetime-local" id="clubcal_lite_start_dt" ' . ($is_all_day ? '' : 'name="clubcal_lite_start"') . ' value="' . esc_attr($start) . '" style="width: 100%; max-width: 320px;' . ($is_all_day ? ' display:none;' : '') . '" step="60" />';
 		echo '</p>';
 
 		echo '<p>';
 		echo '<label for="clubcal_lite_end"><strong>' . esc_html__('End date/time', 'clubcal-lite') . '</strong> <span style="font-weight: normal; color: #666;">(' . esc_html__('optional', 'clubcal-lite') . ')</span></label><br />';
-		echo '<input type="' . esc_attr($is_all_day ? 'date' : 'datetime-local') . '" id="clubcal_lite_end" name="clubcal_lite_end" value="' . esc_attr($is_all_day ? $end_date : $end) . '" style="width: 100%; max-width: 320px;" step="60" />';
+		echo '<input type="date" id="clubcal_lite_end_date" ' . ($is_all_day ? 'name="clubcal_lite_end"' : '') . ' value="' . esc_attr($end_date) . '" style="width: 100%; max-width: 320px;' . ($is_all_day ? '' : ' display:none;') . '" />';
+		echo '<input type="datetime-local" id="clubcal_lite_end_dt" ' . ($is_all_day ? '' : 'name="clubcal_lite_end"') . ' value="' . esc_attr($end) . '" style="width: 100%; max-width: 320px;' . ($is_all_day ? ' display:none;' : '') . '" step="60" />';
 		echo '<p class="description" style="margin-top: 4px;">' . esc_html__('Leave empty for single-day events.', 'clubcal-lite') . '</p>';
 		echo '</p>';
 
